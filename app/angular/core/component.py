@@ -6,6 +6,22 @@ from jsconverters import pyobj2js
 
 jsng = jsimport('ng')
 
+class _ng:
+    class core:
+        ViewChild = javascript.JSConstructor(jsng.core.ViewChild)
+
+class Query:
+    def to_js(self):
+        return javascript.pyobj2jsobj(self._ng_obj)
+
+class ViewChild(Query):
+    def __init__(self, reference):
+        if hasattr(reference,'_component'):
+            self._ref = reference
+        else:
+            self._ref = reference
+        self._ng_obj = _ng.core.ViewChild(self._ref)
+
 _Output = javascript.JSConstructor(jsng.core.EventEmitter)
 
 def Output():
@@ -73,6 +89,14 @@ def component(cls):
             for d in data.directives:
                 if hasattr(d,'_component') and d._component is not None:
                     attr_dict['directives'].append(javascript.pyobj2jsobj(d._component))
+
+        if hasattr(data,'ViewElements'):
+            attr_dict['queries'] = {}
+            for k in dir(data.ViewElements):
+                if not k[0] == '_':
+                    val = getattr(data.ViewElements,k)
+                    attr_dict['queries'][k] = val.to_js()
+            attr_dict['queries'] = JSDict(attr_dict['queries'])
 
         if hasattr(data,'Inputs'):
             attr_dict['inputs'] = []
