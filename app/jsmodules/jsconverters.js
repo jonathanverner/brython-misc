@@ -15,6 +15,3 @@ var $module=(function($B) {
         }
     }
 })(__BRYTHON__)
-
-if ( ! window.modules ) window.modules = {}
-window.modules.js = $module;

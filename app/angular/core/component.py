@@ -1,6 +1,11 @@
 import javascript
 from browser import window, document, console
 from .jsdict import JSDict
+from jsmodules import jsimport
+from jsconverters import pyobj2js
+
+jsng = jsimport('ng')
+
 
 class Component:
     METADATA = ['selector','template','templateURL','pipes','providers','styles','styleUrls','renderer']
@@ -19,7 +24,7 @@ def _js_constructor(cls):
     def constr():
         obj = cls()
         #return javascript.pyobj2jsobj(obj)
-        return window.modules.js.pyobj2js(obj)
+        return pyobj2js(obj)
     return constr
 
 def _get_js_annots(cls):
@@ -65,6 +70,6 @@ def component(cls):
     console.log("CLS:",jscls)
     window[str(cls)]=cls
 
-    cls._component = window.ng.core.Component(meta).Class(jscls)
     window.ng.platformBrowserDynamic.bootstrap(cls._component)
+    cls._component = jsng.core.Component(meta).Class(jscls)
     return cls
