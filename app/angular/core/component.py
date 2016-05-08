@@ -6,6 +6,16 @@ from jsconverters import pyobj2js
 
 jsng = jsimport('ng')
 
+_Output = javascript.JSConstructor(jsng.core.EventEmitter)
+
+def Output():
+    out = _Output()
+    ret=javascript.pyobj2jsobj(out)
+    ret.pyobj = out
+    return ret
+
+
+
 
 class Component:
     METADATA = ['selector','template','templateURL','pipes','providers','styles','styleUrls','renderer']
@@ -13,11 +23,16 @@ class Component:
 
     def __init__(self):
         console.log("Initializing Component:", self.__class__.__name__)
-        if hasattr(self,'ComponentData') and hasattr(self.ComponentData,'Inputs'):
-            for k in dir(self.ComponentData.Inputs):
-                if k[0] != '_':
-                    console.log("Setting default for", k)
-                    setattr(self,k,getattr(self.ComponentData.Inputs,k))
+        if hasattr(self,'ComponentData'):
+            if hasattr(self.ComponentData,'Inputs'):
+                for k in dir(self.ComponentData.Inputs):
+                    if k[0] != '_':
+                        setattr(self,k,getattr(self.ComponentData.Inputs,k))
+            if hasattr(self.ComponentData,'Outputs'):
+                for k in dir(self.ComponentData.Outputs):
+                    if k[0] != '_':
+                        setattr(self,k,getattr(self.ComponentData.Outputs,k))
+
         pass
 
 def _js_constructor(cls):
@@ -46,6 +61,7 @@ def _get_js_annots(cls):
 
 
 def component(cls):
+    jscls = JSDict(_get_js_annots(cls))
     attr_dict = {}
     if hasattr(cls,'ComponentData'):
         data = cls.ComponentData
@@ -64,8 +80,13 @@ def component(cls):
                 if not k[0] == '_':
                     attr_dict['inputs'].append(k)
 
+        if hasattr(data,'Outputs'):
+            attr_dict['outputs'] = []
+            for k in dir(data.Outputs):
+                if not k[0] == '_':
+                    attr_dict['outputs'].append(k)
+
     meta = JSDict(attr_dict)
-    jscls = JSDict(_get_js_annots(cls))
     console.log("Meta:",meta)
     console.log("CLS:",jscls)
     window[str(cls)]=cls
