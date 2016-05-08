@@ -1,5 +1,4 @@
 import sys
-sys.path.append('/app')
 
 from browser import window, console
 from app_component import AppComponent, ClickComponent
