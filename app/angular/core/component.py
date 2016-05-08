@@ -1,5 +1,5 @@
 import javascript
-from browser import window, document, console
+from browser import document, console
 from .jsdict import JSDict
 from jsmodules import jsimport
 from jsconverters import pyobj2js
@@ -75,7 +75,6 @@ def _get_js_annots(cls):
     js_annots['constructor'] = _js_constructor(cls)
     return js_annots
 
-
 def component(cls):
     jscls = JSDict(_get_js_annots(cls))
     attr_dict = {}
@@ -113,7 +112,6 @@ def component(cls):
     meta = JSDict(attr_dict)
     console.log("Meta:",meta)
     console.log("CLS:",jscls)
-    window[str(cls)]=cls
 
     cls._component = jsng.core.Component(meta).Class(jscls)
     return cls
