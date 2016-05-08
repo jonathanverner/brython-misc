@@ -115,6 +115,8 @@ def component(cls):
     console.log("CLS:",jscls)
     window[str(cls)]=cls
 
-    window.ng.platformBrowserDynamic.bootstrap(cls._component)
     cls._component = jsng.core.Component(meta).Class(jscls)
     return cls
+
+def bootstrap(component):
+    jsng.platformBrowserDynamic.bootstrap(component._component)
