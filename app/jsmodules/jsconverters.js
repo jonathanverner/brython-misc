@@ -23,6 +23,13 @@ var $module=(function($B) {
             });
         }
     }
+    var copyPrototype = function(obj) { 
+        for( m in obj.prototype ) { 
+            if (m[0] !== '_') { 
+                obj[m] = obj.prototype[m];
+            }
+        }
+    }
     return {
         pyobj2js:function(obj) {
             if (obj.__class__) {
@@ -36,6 +43,7 @@ var $module=(function($B) {
                     }
                 }
             }
+//             copyPrototype(obj);
             return obj
         }
     }
