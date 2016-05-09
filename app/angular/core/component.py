@@ -31,9 +31,6 @@ def Output():
     ret.emit = out.emit
     return ret
 
-
-
-
 class Component:
     METADATA = ['selector','template','templateURL','pipes','providers','styles','styleUrls','renderer']
     _component = None
