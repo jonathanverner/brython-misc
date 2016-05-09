@@ -13,7 +13,7 @@ class AppComponent(angular.core.Component):
     class ComponentData:
         selector = 'my-app'
         templateUrl = "app/templates/app.component.html"
-        directives = [ClickComponent,CodeMirrorComponent,"primeng.Menubar"]
+        directives = [ClickComponent,CodeMirrorComponent]
 
         class ViewElements:
             header = angular.core.ViewChild('header')

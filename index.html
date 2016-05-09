@@ -25,7 +25,7 @@
     <link rel="stylesheet" type="text/css" href="assets/font-awesome-4.6.2/css/font-awesome.min.css" />
     <link rel="stylesheet" type="text/css" href="node_modules/primeui/primeui-ng-all.min.css" />
     <script src="node_modules/systemjs/dist/system.src.js"></script>
-    <script src="node_modules/primeui/primeui-ng-all.min.js"></script>
+
     <!-- 2. Configure SystemJS -->
     <script>
         System.config({
@@ -36,6 +36,7 @@
             map: {
                 'primeng': 'node_modules/primeng',
                 'angular2': 'node_modules/angular2',
+                '@angular': 'node_modules/@angular',
                 'rxjs': 'node_modules/rxjs',
             }
         });
@@ -59,11 +60,11 @@
     <script src="bower_components/brython/www/src/brython_dist.js"></script>
     
     <!-- APP -->
-    <script type="text/python" src="app/main.py"></script>
+     <script type="text/python" src="app/main.py"></script> 
     
     <!-- 2. Load our 'modules' -->
-<!--    <script src='app/app.component.js'></script>
-    <script src='app/main.js'></script>-->
+<!--     <script src='app/app.component.js'></script> -->
+<!--     <script src='app/main.js'></script> -->
 
   </head>
 
