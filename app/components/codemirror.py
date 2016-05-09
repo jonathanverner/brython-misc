@@ -58,7 +58,7 @@ class CodeMirrorComponent(ngcore.Component):
         self.cm = CM(self.textarea.nativeElement,self.options)
         self._cmdoc = self.cm.getDoc()
         self._cmdoc.on("change",self._cm_change_handler)
-        self.doc.change.pyobj.subscribe(self._doc_change_handler)
+        self.doc.change.sub(self._doc_change_handler)
 
     def subscribe(self):
         pass
@@ -73,6 +73,6 @@ class CodeMirrorComponent(ngcore.Component):
             'edit':change
         })
         console.log(self.change)
-        self.change.emit(ch)
+        self.change.pub(ch)
         self.doc.on_change(ch)
 

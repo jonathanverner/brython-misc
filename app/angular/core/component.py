@@ -29,6 +29,12 @@ def Output():
     ret=javascript.pyobj2jsobj(out)
     ret.pyobj = out
     ret.emit = out.emit
+    def pub(ch):
+        ret.pyobj.emit(ch)
+    def sub(f,error=None,compl=None):
+        ret.pyobj.subscribe(f,error,compl)
+    ret.pub = pub
+    ret.sub = sub
     return ret
 
 class Component:
