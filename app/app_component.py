@@ -9,18 +9,8 @@ class AppComponent(angular.core.Component):
 
     class ComponentData:
         selector = 'my-app'
-        template = """
-<h1 #header>My First Angular 2 App: {{ title }} </h1>
-<click-me [title]="'Ahoj'"></click-me><br/>
-Title: <input [(ngModel)] = "title" (keyup)="on_key($event)"/><br/>
-Check: <input type='checkbox' [(ngModel)] = "checked"/><br/>
-Log: {{values }}<br/>
-Text: {{ doc.value }} <br/>
-<button (click)="clear_doc()">Clear</button><br/>
-<codemirror [options]='cm_options' [doc]="doc" (change)="doc_change($event)">
-</codemirror>
-                   """
         directives = [ClickComponent,CodeMirrorComponent]
+        templateUrl = "app/templates/app.component.html"
 
         class ViewElements:
             header = angular.core.ViewChild('header')
