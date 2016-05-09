@@ -3,14 +3,17 @@ from browser import console
 from components import ClickComponent, CodeMirrorComponent, Doc
 import javascript
 from jsconverters import pyobj2js
+from jsmodules import jsimport
+
+primeng = jsimport("primeng")
 
 @angular.core.component
 class AppComponent(angular.core.Component):
 
     class ComponentData:
         selector = 'my-app'
-        directives = [ClickComponent,CodeMirrorComponent]
         templateUrl = "app/templates/app.component.html"
+        directives = [ClickComponent,CodeMirrorComponent,"primeng.Menubar"]
 
         class ViewElements:
             header = angular.core.ViewChild('header')
@@ -32,6 +35,7 @@ class AppComponent(angular.core.Component):
             'indentUnit':2,
             'lineNumbers':True
         })
+        #console.log("PRIME NG",primeng)
 
     def clear_doc(self):
         self.doc.value = ''

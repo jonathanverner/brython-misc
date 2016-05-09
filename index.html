@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="styles.css">
 
     <!-- 1. Load libraries -->
+    <!-- ANGULAR 2 -->
     <!-- IE required polyfill -->
     <script src="node_modules/es6-shim/es6-shim.min.js"></script>
 
@@ -18,14 +19,46 @@
     <script src="node_modules/@angular/platform-browser/platform-browser.umd.js"></script>
     <script src="node_modules/@angular/platform-browser-dynamic/platform-browser-dynamic.umd.js"></script>
 
+    
+    <!-- PRIME NG-->
+    <link rel="stylesheet" type="text/css" href="node_modules/primeui/themes/delta/theme.css" />
+    <link rel="stylesheet" type="text/css" href="assets/font-awesome-4.6.2/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="node_modules/primeui/primeui-ng-all.min.css" />
+    <script src="node_modules/systemjs/dist/system.src.js"></script>
+    <script src="node_modules/primeui/primeui-ng-all.min.js"></script>
+    <!-- 2. Configure SystemJS -->
+    <script>
+        System.config({
+            defaultJSExtensions: true,
+            packages: {
+                "/angular2": {"defaultExtension": false}
+            },
+            map: {
+                'primeng': 'node_modules/primeng',
+                'angular2': 'node_modules/angular2',
+                'rxjs': 'node_modules/rxjs',
+            }
+        });
+        var primeng;
+        var onLoadHandler = function() { 
+            System.import("primeng/primeng").then(function(val) {
+                primeng = val;
+                brython(1)
+            });
+        }
+    </script>
+    
+    <!-- CODEMIRROR -->
     <script src="node_modules/codemirror/lib/codemirror.js"></script>
     <script src="node_modules/codemirror/mode/python/python.js"></script>
     <link rel="stylesheet" href="node_modules/codemirror/lib/codemirror.css">
 
+    <!-- BRYTHON -->
     <link rel="pythonpath" href="app" />
     <link rel="pythonpath" href="app/jsmodules" hreflang="js" />
     <script src="bower_components/brython/www/src/brython_dist.js"></script>
     
+    <!-- APP -->
     <script type="text/python" src="app/main.py"></script>
     
     <!-- 2. Load our 'modules' -->
@@ -35,7 +68,7 @@
   </head>
 
   <!-- 3. Display the application -->
-  <body onload="brython(1)">
+  <body onload="onLoadHandler()">
     <my-app>Loading...</my-app>
   </body>
 
