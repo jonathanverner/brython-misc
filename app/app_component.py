@@ -1,6 +1,8 @@
 import angular.core 
 from browser import console
 from components import ClickComponent, CodeMirrorComponent, Doc
+import javascript
+from jsconverters import pyobj2js
 
 @angular.core.component
 class AppComponent(angular.core.Component):
@@ -46,6 +48,7 @@ Text: {{ doc.value }} <br/>
 
     def doc_change(self,event):
         console.log(event)
+        console.log(self.doc)
         console.log("DOC:",self.doc.value)
 
 

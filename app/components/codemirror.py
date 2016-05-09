@@ -9,6 +9,7 @@ CM = javascript.JSConstructor(CodeMirror)
 
 
 class Doc:
+    @ngcore.export2js
     def __init__(self,val=''):
         self._val=val
         self.change = ngcore.Output()
@@ -56,12 +57,16 @@ class CodeMirrorComponent(ngcore.Component):
         self.options.value = self.doc.value
         self.cm = CM(self.textarea.nativeElement,self.options)
         self._cmdoc = self.cm.getDoc()
-        self._cmdoc.on("change",self._change_handler)
+        self._cmdoc.on("change",self._cm_change_handler)
+        self.doc.change.pyobj.subscribe(self._doc_change_handler)
 
     def subscribe(self):
         pass
 
-    def _change_handler(self,cmdoc,change):
+    def _doc_change_handler(self,change):
+        self._cmdoc.setValue(self.doc.value)
+        
+    def _cm_change_handler(self,cmdoc,change):
         console.log(change)
         ch = ngcore.JSDict({
             'value':self._cmdoc.getValue(),
