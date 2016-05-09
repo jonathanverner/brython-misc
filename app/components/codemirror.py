@@ -67,12 +67,10 @@ class CodeMirrorComponent(ngcore.Component):
         self._cmdoc.setValue(self.doc.value)
         
     def _cm_change_handler(self,cmdoc,change):
-        console.log(change)
         ch = ngcore.JSDict({
             'value':self._cmdoc.getValue(),
             'edit':change
         })
-        console.log(self.change)
         self.change.pub(ch)
         self.doc.on_change(ch)
 

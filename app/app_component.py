@@ -48,8 +48,8 @@ Text: {{ doc.value }} <br/>
 
     def doc_change(self,event):
         console.log(event)
-        console.log(self.doc)
-        console.log("DOC:",self.doc.value)
+        pass
+
 
 
     def on_key(self,event):
