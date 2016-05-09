@@ -92,6 +92,10 @@ def component(cls):
             for d in data.directives:
                 if hasattr(d,'_component') and d._component is not None:
                     attr_dict['directives'].append(javascript.pyobj2jsobj(d._component))
+                elif type(d) == type(""):
+                    attr_dict['directives'].append(jsimport(d))
+                else:
+                    attr_dict['directives'].append(d)
 
         if hasattr(data,'ViewElements'):
             attr_dict['queries'] = {}
