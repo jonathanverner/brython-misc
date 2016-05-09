@@ -28,6 +28,7 @@ def Output():
     out = _Output()
     ret=javascript.pyobj2jsobj(out)
     ret.pyobj = out
+    ret.emit = out.emit
     return ret
 
 

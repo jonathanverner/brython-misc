@@ -23,7 +23,7 @@ class Doc:
     @value.setter
     def value(self,val):
         self._val = val
-        self.change.pyobj.emit(val)
+        self.change.emit(val)
 
 
 @ngcore.component
@@ -68,6 +68,6 @@ class CodeMirrorComponent(ngcore.Component):
             'edit':change
         })
         console.log(self.change)
-        self.change.pyobj.emit(ch)
+        self.change.emit(ch)
         self.doc.on_change(ch)
 
