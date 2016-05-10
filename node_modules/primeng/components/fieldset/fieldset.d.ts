@@ -1,11 +1,11 @@
-import { EventEmitter } from 'angular2/core';
+import { EventEmitter } from '@angular/core';
 export declare class Fieldset {
     legend: string;
     toggleable: boolean;
     collapsed: boolean;
     onBeforeToggle: EventEmitter<any>;
     onAfterToggle: EventEmitter<any>;
-    style: string;
+    style: any;
     styleClass: string;
     private hover;
     onLegendMouseenter(event: any): void;

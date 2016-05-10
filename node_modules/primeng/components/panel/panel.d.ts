@@ -1,9 +1,9 @@
-import { EventEmitter } from 'angular2/core';
+import { EventEmitter } from '@angular/core';
 export declare class Panel {
     toggleable: boolean;
     header: string;
     collapsed: boolean;
-    style: string;
+    style: any;
     styleClass: string;
     onBeforeToggle: EventEmitter<any>;
     onAfterToggle: EventEmitter<any>;

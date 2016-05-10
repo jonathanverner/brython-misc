@@ -3,7 +3,7 @@ export declare class TabPanel {
     selected: boolean;
     disabled: boolean;
     closable: boolean;
-    headerStyle: string;
+    headerStyle: any;
     headerStyleClass: string;
     hoverHeader: boolean;
     closed: boolean;

@@ -1,11 +1,11 @@
-import { ElementRef, EventEmitter } from 'angular2/core';
+import { ElementRef, EventEmitter } from '@angular/core';
 import { AccordionTab } from './accordiontab';
 export declare class Accordion {
     private el;
     multiple: boolean;
     onClose: EventEmitter<any>;
     onOpen: EventEmitter<any>;
-    style: string;
+    style: any;
     styleClass: string;
     tabs: AccordionTab[];
     constructor(el: ElementRef);

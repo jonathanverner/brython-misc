@@ -1,4 +1,4 @@
-import { ElementRef, OnDestroy, TemplateRef } from 'angular2/core';
+import { ElementRef, OnDestroy, TemplateRef } from '@angular/core';
 import { DomHandler } from '../dom/domhandler';
 export declare class PickList implements OnDestroy {
     private el;
@@ -8,11 +8,11 @@ export declare class PickList implements OnDestroy {
     sourceHeader: string;
     targetHeader: string;
     responsive: boolean;
-    style: string;
+    style: any;
     styleClass: string;
-    sourceStyle: string;
-    targetStyle: string;
-    itemTemplate: TemplateRef;
+    sourceStyle: any;
+    targetStyle: any;
+    itemTemplate: TemplateRef<any>;
     constructor(el: ElementRef, domHandler: DomHandler);
     onMouseover(event: any): void;
     onMouseout(event: any): void;

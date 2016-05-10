@@ -1,11 +1,11 @@
-import { AfterViewInit, AfterViewChecked, EventEmitter, ElementRef } from 'angular2/core';
+import { AfterViewInit, AfterViewChecked, EventEmitter, ElementRef } from '@angular/core';
 import { DomHandler } from '../dom/domhandler';
 export declare class Terminal implements AfterViewInit, AfterViewChecked {
     private el;
     private domHandler;
     welcomeMessage: string;
     prompt: string;
-    style: string;
+    style: any;
     styleClass: string;
     responseChange: EventEmitter<any>;
     handler: EventEmitter<any>;

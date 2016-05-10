@@ -1,9 +1,9 @@
-import { ElementRef, EventEmitter, QueryList } from 'angular2/core';
+import { ElementRef, EventEmitter, QueryList } from '@angular/core';
 import { TabPanel } from './tabpanel';
 export declare class TabView {
     private el;
     orientation: string;
-    style: string;
+    style: any;
     styleClass: string;
     onChange: EventEmitter<any>;
     onClose: EventEmitter<any>;

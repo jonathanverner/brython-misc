@@ -1,7 +1,7 @@
-import { ElementRef, OnInit, AfterViewInit, AfterViewChecked, DoCheck, OnDestroy, Renderer, EventEmitter, IterableDiffers } from 'angular2/core';
+import { ElementRef, OnInit, AfterViewInit, AfterViewChecked, DoCheck, OnDestroy, Renderer, EventEmitter, IterableDiffers } from '@angular/core';
 import { SelectItem } from '../api/selectitem';
 import { DomHandler } from '../dom/domhandler';
-import { ControlValueAccessor } from 'angular2/common';
+import { ControlValueAccessor } from '@angular/common';
 export declare class MultiSelect implements OnInit, AfterViewInit, AfterViewChecked, DoCheck, OnDestroy, ControlValueAccessor {
     private el;
     private domHandler;
@@ -10,7 +10,7 @@ export declare class MultiSelect implements OnInit, AfterViewInit, AfterViewChec
     onChange: EventEmitter<any>;
     scrollHeight: string;
     defaultLabel: string;
-    style: string;
+    style: any;
     styleClass: string;
     disabled: boolean;
     overlayVisible: boolean;

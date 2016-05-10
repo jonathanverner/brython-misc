@@ -1,9 +1,9 @@
-import { ElementRef, AfterViewInit, DoCheck, EventEmitter, IterableDiffers, ChangeDetectorRef, NgZone } from 'angular2/core';
+import { ElementRef, AfterViewInit, DoCheck, EventEmitter, IterableDiffers, ChangeDetectorRef, NgZone } from '@angular/core';
 export declare class GMap implements AfterViewInit, DoCheck {
     private el;
     private cd;
     private zone;
-    style: string;
+    style: any;
     styleClass: string;
     options: any;
     overlays: any[];

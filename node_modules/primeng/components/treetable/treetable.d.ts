@@ -1,4 +1,4 @@
-import { EventEmitter, QueryList } from 'angular2/core';
+import { EventEmitter, QueryList } from '@angular/core';
 import { TreeNode } from '../api/treenode';
 import { Column } from '../column/column';
 export declare class TreeTable {
@@ -10,7 +10,7 @@ export declare class TreeTable {
     onNodeUnselect: EventEmitter<any>;
     onNodeExpand: EventEmitter<any>;
     onNodeCollapse: EventEmitter<any>;
-    style: string;
+    style: any;
     styleClass: string;
     header: any;
     footer: any;
