@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "start": "npm run lite",
-    "lite": "lite-server"
+    "lite": "lite-server",
+    "tsc": "tsc",
+    "tsc:w": "tsc -w",
+    "typings":"typings"
   },
   "license": "ISC",
   "dependencies": {
@@ -28,6 +31,8 @@
   },
   "devDependencies": {
     "concurrently": "^2.0.0",
-    "lite-server": "^2.2.0"
+    "lite-server": "^2.2.0",
+    "typescript": "^1.8.10",
+    "typings": "^0.8.1"
   }
 }
