@@ -23,9 +23,9 @@ class Promise():
         self._success_handler = success_handler
         self._error_handler = error_handler
         if self.status == Promise.STATUS_FINISHED:
-            return self._success_handler(self.result)
+            self._success_handler(self.result)
         elif self.status == Promise.STATUS_ERROR:
-            return self._error_handler(self.result)
+            self._error_handler(self.result)
 
     def start(self):
         if self._status == Promise.STATUS_NEW:
@@ -95,17 +95,22 @@ class HTTPRequest(Promise):
             self._finish(HTTPException(req),Promise.STATUS_ERROR)
 
 
-def process_async(generator,throw_on_error):
+def process_async(generator,result,throw_on_error=False):
+        
     def run(val):
         try:
             async = generator.send(val)
             if isinstance(async,Return):
-                return async.val
+                result._finish(async.val)
             else:
-                succ,err = process_async(generator,async.throw_on_error)
-                return async.then(succ,err)
+                succ,err = process_async(generator,result,throw_on_error=async.throw_on_error)
+                async.then(succ,err)
         except StopIteration:
-            return None
+            result._finish(None)
+        except Exception as ex:
+            result._finish(ex,status=Promise.STATUS_ERROR)
+            
+
     def error(ex):
         try:
             if throw_on_error:
@@ -113,12 +118,14 @@ def process_async(generator,throw_on_error):
             else:
                 async = generator.send(None)
             if isinstance(async,Return):
-                return async.val
+                result._finish(async.val)
             else:
-                succ,err = process_async(generator,async.throw_on_error)
-                return async.then(succ,err)
+                succ,err = process_async(generator,result,throw_on_error=async.throw_on_error)
+                async.then(succ,err)
         except StopIteration:
-            return None
+            result._finish(None)
+        except Exception as ex:
+            result._finish(ex,status=Promise.STATUS_ERROR)
             
     return run,error
 
@@ -128,8 +135,10 @@ def interruptible(f):
     def run(*args,**kwargs):
         generator = f(*args,**kwargs)
         async = next(generator)
-        succ,err = process_async(generator)
-        return async.then(succ,err)
+        result = Promise()
+        succ,err = process_async(generator,result)
+        async.then(succ,err)
+        return result
 
     return run
 
