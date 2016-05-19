@@ -100,7 +100,7 @@ class HTTPRequest(Promise):
             self._finish(HTTPException(req),Promise.STATUS_ERROR)
 
 
-def process_async(generator,result,throw_on_error=False):
+def get_continuation(generator,result,throw_on_error=False):
         
     def run(val):
         try:
@@ -108,7 +108,7 @@ def process_async(generator,result,throw_on_error=False):
             if isinstance(async,Return):
                 result._finish(async.val)
             else:
-                succ,err = process_async(generator,result,throw_on_error=async.throw_on_error)
+                succ,err = get_continuation(generator,result,throw_on_error=async.throw_on_error)
                 async.then(succ,err)
         except StopIteration:
             result._finish(None)
@@ -125,7 +125,7 @@ def process_async(generator,result,throw_on_error=False):
             if isinstance(async,Return):
                 result._finish(async.val)
             else:
-                succ,err = process_async(generator,result,throw_on_error=async.throw_on_error)
+                succ,err = get_continuation(generator,result,throw_on_error=async.throw_on_error)
                 async.then(succ,err)
         except StopIteration:
             result._finish(None)
@@ -141,7 +141,7 @@ def interruptible(f):
         generator = f(*args,**kwargs)
         async = next(generator)
         result = Promise()
-        succ,err = process_async(generator,result)
+        succ,err = get_continuation(generator,result)
         async.then(succ,err)
         return result
 
