@@ -1,6 +1,6 @@
 import json
 from browser import console, websocket
-from async import Promise, interruptible
+from async import Promise, interruptible, Return
 from angular import core as ngcore
 
 
@@ -46,6 +46,7 @@ class RPCClientFactory:
 class RPCClient:
     _NEXT_CALL_ID = 0
     _NEXT_CLIENT_ID = 0
+
     STATUS_OPENING_SOCKET = 0
     STATUS_SOCKET_OPEN = 1
     STATUS_QUERYING_SERVICE = 2
@@ -162,15 +163,12 @@ class RPCClient:
         self._status = RPCClient.STATUS_CLOSED_SOCKET
 
     def _on_message(self,evt):
-        console.log("Web Socket Receiving:", evt)
         msg = json.loads(evt.data)
         if msg['client_id'] is not None:
             if not msg['client_id'] == self._client_id:
-                console.log("Not our message:", self._client_id, "!=", msg['client_id'])
                 return
         else:
             if not msg['service'] == self._service_name or not msg['service'] == '__system__':
-                console.log("Not our message:", self._service_name, "!=", msg['service'])
                 return
         console.log("Processing message:", msg)
         if msg['type'] == 'event':
