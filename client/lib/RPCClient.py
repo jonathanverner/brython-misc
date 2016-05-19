@@ -129,6 +129,19 @@ class RPCClient:
         else:
             return []
 
+    def ready_promise(self):
+        console.log("!!! READY PROMISE NOT IMPLEMENTED !!!")
+        raise Exception("NOT IMPLEMENTED")
+        return None
+        rt = Promise()
+        if self._status < RPCClient.STATUS_READY:
+            def __onr(svc):
+                rt._finish(svc)
+            self.bind('__on_ready__',__onr)
+        else:
+            rt._finish(self)
+        return rt
+
     @interruptible
     def _on_open(self,evt=None):
         console.log("Web Socket Open, querying service", self._service_name, "STATUS:",self.status)
