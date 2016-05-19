@@ -80,6 +80,8 @@ class RPCClient:
         self._event_handlers = {}
         self._method_promise = None
         self._client_id = RPCClient.new_client_id()
+        self._generate_method('list_services',svc_name='__system__')
+        self._generate_method('query_service',svc_name='__system__')
         self._socket.bind("message", self._on_message)
         self._socket.bind("close",self._on_close)
         if self._socket.readyState == self._socket.OPEN:
@@ -90,9 +92,6 @@ class RPCClient:
         else:
             self._status = RPCClient.STATUS_OPENING_SOCKET
             self._socket.bind("open",self._on_open)
-
-        self._generate_method('list_services',svc_name='__system__')
-        self._generate_method('query_service',svc_name='__system__')
 
 
     @property
