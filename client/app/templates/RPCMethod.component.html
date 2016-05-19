@@ -1,0 +1,13 @@
+<b>{{ method[0] }}</b>(
+<span *ngFor="let arg of method[1]; let last=last">{{arg[0]}}<span *ngIf="arg[1]==True">={{arg[2]}}</span><span *ngIf='!last'>,</span> </span>
+<span *ngFor="let arg of method[2]; let last=last">{{arg[0]}}<span *ngIf="arg[1]==True">={{arg[2]}}</span><span *ngIf='!last'>,</span> </span>
+)
+<div>
+    <div *ngFor="let arg of method[1]; let i=index">
+    <div *ngIf="i > 0">
+        <label>{{ arg[0] }}</label> <input [(ngModel)] = "args[i-1]" alt='Default: {{ arg[2] }}'/> (Value: {{ args[i-1] }})
+    </div>
+    </div>
+
+    <button (click)="call_method($event)">Call!</button>Results:{{ result }}
+</div>

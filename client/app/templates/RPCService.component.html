@@ -1,0 +1,8 @@
+<div>
+  Service status: {{ rpc.status }} <br/>
+  <div *ngIf="rpc.status == 3">
+        <div *ngFor="let method of methods">
+            <rpc-method [method]="method" [service]="rpc"></rpc-method>
+        </div>
+  </div>
+</div>
