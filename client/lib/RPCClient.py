@@ -18,6 +18,30 @@ class SocketFactory:
     def _on_close(cls,evt):
         pass
 
+class RPCClientFactory:
+    CLIENTS = {}
+
+    @classmethod
+    def _hash(cls,url,service_name):
+        return url+':'+service_name
+
+    @classmethod
+    def get_client(cls, url, service_name):
+        h=cls._hash(url,service_name)
+        if h not in cls.CLIENTS:
+            cls.CLIENTS[h] = RPCClient(url,service_name)
+        elif cls.CLIENTS[h].status > RPCClient.STATUS_READY:
+            del cls.CLIENTS[h]
+            cls.CLIENTS[h] = RPCClient(url,service_name)
+        client = cls.CLIENTS[h]
+        ret = Promise()
+        if client.status < RPCClient.STATUS_READY:
+            def __onr(svc):
+                ret._finish(svc)
+            client.bind('__on_ready__',__onr)
+        else:
+            ret._finish(client)
+        return ret
 
 class RPCClient:
     _NEXT_CALL_ID = 0

@@ -1,6 +1,6 @@
 import angular.core
 from browser import console
-from RPCClient import RPCClient
+from RPCClient import RPCClientFactory
 from async import interruptible
 
 @angular.core.component
@@ -51,11 +51,9 @@ class RPCServiceComponent(angular.core.Component):
         self.rpc = None
         self.methods = []
 
+    @interruptible
     def ngOnInit(self):
         console.log("Initializing Service Component for", self.service, "at", self.url)
-        self.rpc = RPCClient(self.url,self.service)
-        self.rpc.bind('__on_ready__',self._service_ready)
-
-    def _service_ready(self,evt=None):
+        self.rpc = yield RPCClientFactory.get_client(self.url,self.service)
         self.methods = self.rpc.methods
         console.log("METHODS:",self.methods)
