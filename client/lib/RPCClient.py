@@ -94,16 +94,6 @@ class RPCClient:
         self._generate_method('list_services',svc_name='__system__')
         self._generate_method('query_service',svc_name='__system__')
 
-    def _load_methods(self,methods):
-        console.log("Loading methods",methods)
-        self._methods = methods
-        for m in self._methods.keys():
-            self._generate_method(m)
-        self._status = RPCClient.STATUS_READY
-        handlers = self._event_handlers.get('__on_ready__',[])
-        for handler in handlers:
-            handler(self)
-
 
     @property
     def status(self):
@@ -116,12 +106,19 @@ class RPCClient:
         else:
             return []
 
+    @interruptible
     def _on_open(self,evt=None):
         console.log("Web Socket Open, querying service", self._service_name, "STATUS:",self.status)
         self._status = RPCClient.STATUS_QUERYING_SERVICE
         console.log("Transitioning to status:",self.status)
-        self._method_promise = self.query_service(self._service_name)
-        self._method_promise.then(self._load_methods)
+        self._methods = yield self.query_service(self._service_name)
+        console.log("Loading methods",self._methods)
+        for m in self._methods.keys():
+            self._generate_method(m)
+        self._status = RPCClient.STATUS_READY
+        handlers = self._event_handlers.get('__on_ready__',[])
+        for handler in handlers:
+            handler(self)
 
 
     def _on_close(self,evt):
