@@ -1,21 +1,33 @@
-var __BRYTHON__=__BRYTHON__ || {}  // global object with brython built-ins
+// var __BRYTHON__=__BRYTHON__ || {}  // global object with brython built-ins
 
 ;(function($B) {
 
-// Get url of this script brython_builtins.js
-var scripts = document.getElementsByTagName('script')
-var this_url = scripts[scripts.length-1].src
-var elts = this_url.split('/')
-elts.pop()
-// brython_path is the url of the directory holding brython core scripts
-// It is used to import modules of the standard library
-var $path = $B.brython_path = elts.join('/')+'/'
 
-// Get the URL of the directory where the script stands
-var $href = $B.script_path = window.location.href
-var $href_elts = $href.split('/')
-$href_elts.pop()
-var $script_dir = $B.script_dir = $href_elts.join('/')
+if (document && document.getElementsByTagName) {
+    // Get url of this script brython_builtins.js
+    var scripts = document.getElementsByTagName('script')
+    var this_url = scripts[scripts.length-1].src
+    var elts = this_url.split('/')
+    elts.pop()
+    // brython_path is the url of the directory holding brython core scripts
+    // It is used to import modules of the standard library
+    var $path = $B.brython_path = elts.join('/')+'/'
+
+    // Get the URL of the directory where the script stands
+    var $href = $B.script_path = window.location.href
+    var $href_elts = $href.split('/')
+    $href_elts.pop()
+    var $script_dir = $B.script_dir = $href_elts.join('/')
+} else {
+    console.log($B)
+    // brython_path is the url of the directory holding brython core scripts
+    // It is used to import modules of the standard library
+    var $path = $B.brython_path = "./"
+
+    // Get the URL of the directory where the script stands
+    var $href = $B.script_path = "/"
+    var $script_dir = $B.script_dir = "/"
+}
 
 // Mapping between a module name and its path (url)
 $B.$py_module_path = {}

@@ -1,10 +1,10 @@
-from browser import ajax, window
+from browser import ajax, window,console
 
 class PromiseException(Exception):
     def __init__(self,message):
         super(PromiseException,self).__init__(message)
 
-class Promise():
+class Promise:
     STATUS_NEW = 0
     STATUS_INPROGRESS = 1
     STATUS_FINISHED = 2
@@ -19,12 +19,12 @@ class Promise():
         if start_immediately:
             self.start()
     
-    def then(self, success_handler, error_handler):
+    def then(self, success_handler, error_handler = None):
         self._success_handler = success_handler
         self._error_handler = error_handler
-        if self.status == Promise.STATUS_FINISHED:
+        if self.status == Promise.STATUS_FINISHED and self._error_handler:
             self._success_handler(self.result)
-        elif self.status == Promise.STATUS_ERROR:
+        elif self.status == Promise.STATUS_ERROR and self._error_handler:
             self._error_handler(self.result)
 
     def start(self):
@@ -37,7 +37,7 @@ class Promise():
     @property
     def result(self):
         if self._status == Promise.STATUS_FINISHED or self._status == Promise.STATUS_ERROR:
-            return self.result
+            return self._result
         else:
             raise PromiseException("Not finished")
 
@@ -45,24 +45,29 @@ class Promise():
     def status(self):
         return self._status
 
-    def _finish(self,result,status=Promise.STATUS_FINISHED):
+    def _finish(self,result,status=2):
         self._result = result
         self._status = status
         if self._status == Promise.STATUS_FINISHED and self._success_handler:
+            console.log("Calling success handler with results:",self.result)
             self._success_handler(self.result)
-        elif self._status == Promise.STATUS_ERROR:
+        elif self._status == Promise.STATUS_ERROR and self._error_handler:
+            console.log("Calling error handler with error:", self.result)
             self._error_handler(self.result)
 
-class Return():
+
+
+class Return:
     def __init__(self,val):
         self.val = val
     
+
 class HTTPException(Exception):
     def __init__(self,request):
         super(HTTPException,self).__init__()
         self.req = request
         
-    
+
 class HTTPRequest(Promise):
     METHOD_POST = 'POST'
     METHOD_GET  = 'GET'
@@ -142,6 +147,7 @@ def interruptible(f):
 
     return run
 
+
 @interruptible
 def wget_urls(urls):
     results = ''
@@ -150,6 +156,7 @@ def wget_urls(urls):
         if result:
             results = results + result.text
     yield Return(results)
+
 
 
 # run(wget_urls,["/media/teaching/alg110006/maze/maze.py","/media/teaching/alg110006/maze/css/style.css"])

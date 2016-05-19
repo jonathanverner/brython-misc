@@ -28,8 +28,22 @@ __BRYTHON__.scope = {}
 __BRYTHON__.modules = {}
 
 // Read and eval library
-jscode = fs.readFileSync('../src/brython.js','utf8');
-eval(jscode);
+// jscode = fs.readFileSync('../src/brython.js','utf8');
+// eval(jscode);
+
+
+var sources = [
+'brython_builtins', 'version_info', 'py2js',
+'py_object', 'py_type', 'py_utils', 'py_builtin_functions',
+'py_exceptions', 'py_range_slice', 'py_bytes', 'js_objects',
+'stdlib_paths', 'py_import', 'py_float', 'py_int', 'py_long_int',
+'py_complex', 'py_list', 'py_string', 'py_dict', 'py_set', 'py_dom',
+'py_generator', 'builtin_modules', 'py_import_hooks', 'async'
+]
+
+for(var __i=0;__i<sources.length;__i++) {
+    require("../src/"+sources[__i]+".js");
+}
 
 //function node_import(module,alias,names) {
 function $import_single(module) {
@@ -66,7 +80,7 @@ function $import_single(module) {
 }
 
 $compile_python=function(module_contents,module) {
-    var root = __BRYTHON__.py2js(module_contents,module)
+    var root = __BRYTHON__.py2js(module_contents,module,"__main__","__main__","__main__")
     var body = root.children
     root.children = []
     // use the module pattern : module name returns the results of an anonymous function
@@ -135,10 +149,11 @@ $compile_python=function(module_contents,module) {
 
 function execute_python_script(filename) {
   _py_src=fs.readFileSync(filename, 'utf8')
-  __BRYTHON__.$py_module_path['__main__']='./'
-  var root = __BRYTHON__.py2js(_py_src,'__main__')
+  var fn = filename.split('/').pop()
+  __BRYTHON__.$py_module_path['__main__']=filename
+  var root = __BRYTHON__.py2js(_py_src,fn,fn,fn,fn)
   var js = root.to_js()
-  //console.log(js);
+  console.log(js);
   eval(js);
 }
 
@@ -151,10 +166,15 @@ __BRYTHON__.scope = __BRYTHON__.scope || {}
 __BRYTHON__.imported = __BRYTHON__.imported || {}
 __BRYTHON__.modules = __BRYTHON__.modules || {}
 __BRYTHON__.compile_python=$compile_python
+__BRYTHON__.meta_path = __BRYTHON__.meta_path || []
+// __BRYTHON__.bound = __BRYTHON__.bound || {}
+// __BRYTHON__.type = __BRYTHON__.type || {}
+// __BRYTHON__.$py_src= __BRYTHON__.$py_src || {}
 
 __BRYTHON__.debug = 0
 __BRYTHON__.$options = {}
 __BRYTHON__.$options.debug = 0
+
 
 // other import algs don't work in node
 //import_funcs=[node_import]

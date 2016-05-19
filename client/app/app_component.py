@@ -1,9 +1,12 @@
-import angular.core 
+
 from browser import console
-from components import ClickComponent, CodeMirrorComponent, Doc
+from components import ClickComponent, CodeMirrorComponent, Doc, RPCServiceComponent
 import javascript
+import angular.core
 from jsconverters import pyobj2js
 from jsmodules import jsimport
+from RPCClient import RPCClient
+
 
 primeng = jsimport("primeng")
 
@@ -13,7 +16,7 @@ class AppComponent(angular.core.Component):
     class ComponentData:
         selector = 'my-app'
         templateUrl = "app/templates/app.component.html"
-        directives = [ClickComponent,CodeMirrorComponent]
+        directives = [ClickComponent,CodeMirrorComponent,RPCServiceComponent]
 
         class ViewElements:
             header = angular.core.ViewChild('header')
@@ -35,6 +38,10 @@ class AppComponent(angular.core.Component):
             'indentUnit':2,
             'lineNumbers':True
         })
+        console.log("Creating RPCClient")
+        #self.chat_service = None
+        self.chat_service = RPCClient("ws://localhost:8080/",'chat')
+        console.log(self.chat_service)
         #console.log("PRIME NG",primeng)
 
     def clear_doc(self):

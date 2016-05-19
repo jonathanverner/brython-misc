@@ -166,7 +166,7 @@ $B.get_class = function(obj){
     // generally we get the attribute __class__ of an object by obj.__class__
     // but Javascript builtins used by Brython (functions, numbers, strings...)
     // don't have this attribute so we must return it
-    if(obj===null){return $B.$NoneDict}
+    if(obj===null || obj===undefined){return $B.$NoneDict}
     var klass = obj.__class__
     if(klass===undefined){
         switch(typeof obj) {
@@ -1267,7 +1267,7 @@ window.is_none = function (o) {
     return o === undefined || o == _b_.None;
 }
 
-    window.is_none = function (o) {
+    window.is_none = $B.is_none = function (o) {
         return o === undefined || o == _b_.None;
     }
 
