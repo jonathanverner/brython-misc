@@ -2,6 +2,8 @@ import json, inspect
 from tornado.websocket import WebSocketHandler
 from tornado import gen
 
+from ..json import to_json
+
 def export(f):
     @gen.coroutine
     def async_f(*args, **kwargs):
@@ -13,9 +15,8 @@ def export(f):
 class RPCService:
     SERVICE_NAME = 'RPCService'
 
-    def __init__(self,server):
-        self._server = server
-        
+    def __init__(self,server_api):
+        self._server = server_api
     
     def client_disconnected(self):
         pass

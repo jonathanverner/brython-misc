@@ -41,10 +41,10 @@ class repo(object):
         if node_type == 'file':
             content = attrs.get('content','')
             open(self.absolute_path(relative_path),'w').write(content)
-            os.chmod(self.absolute_path(relative_path),attrs.get('mode',0664))
+            os.chmod(self.absolute_path(relative_path),attrs.get('mode',0o664))
             self.add(relative_path)
         elif node_type == 'dir':
-            os.mkdir(self.absolute_path(relative_path),mode=attrs.get('mode',0777))
+            os.mkdir(self.absolute_path(relative_path),mode=attrs.get('mode',0o777))
             # Git ignores empty directories
             self.create_path(os.path.join(relative_path,'.git_empty_dir'),node_type='file')
 
