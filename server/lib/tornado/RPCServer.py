@@ -148,7 +148,7 @@ class RPCServer(WebSocketHandler):
             else:
                 print("Method",method,"not available")
                 raise RPCException("Method not available")
-            self.write_message(json.dumps({
+            self.write_message(to_json({
                 'service':svc_name,
                 'type':'return',
                 'call_id':call_id,
@@ -157,7 +157,7 @@ class RPCServer(WebSocketHandler):
             }))
         except Exception as ex:
             print("Exception:", ex)
-            self.write_message(json.dumps({
+            self.write_message(to_json({
                     'service':svc_name,
                     'type':'exception',
                     'call_id':call_id,
