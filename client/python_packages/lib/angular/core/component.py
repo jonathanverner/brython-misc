@@ -66,6 +66,7 @@ class Component:
 
 def _js_constructor(cls):
     def constr():
+        logger.debug("Calling constructor for ", cls.__name__)
         obj = cls()
         #return javascript.pyobj2jsobj(obj)
         return pyobj2js(obj)
@@ -133,5 +134,8 @@ def component(cls):
     cls._component = jsng.core.Component(meta).Class(jscls)
     return cls
 
-def bootstrap(component):
-    jsng.platformBrowserDynamic.bootstrap(component._component)
+def bootstrap(component,arg=None):
+    if arg is None:
+        jsng.platformBrowserDynamic.bootstrap(component._component)
+    else:
+        jsng.platformBrowserDynamic.bootstrap(component._component,arg)
