@@ -8,6 +8,9 @@ class ProgressBarComponent(ngcore.Component):
         selector = 'ide-progress-bar'
         templateUrl = "app/templates/ide/progress-bar.component.html"
         directives = []
+        services = {
+            'progress':ProgressService
+        }
 
 
         def __init__(self):

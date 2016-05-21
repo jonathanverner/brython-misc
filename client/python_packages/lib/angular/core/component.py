@@ -1,6 +1,7 @@
 import javascript
 from browser import document
 from .jsdict import JSDict
+from .services import ServiceFactory
 from jsmodules import jsimport
 from jsconverters import pyobj2js
 from lib.logger import Logger
@@ -43,6 +44,10 @@ class Component:
     METADATA = ['selector','template','templateUrl','pipes','providers','styles','styleUrls','renderer']
     _component = None
 
+    class _obj:
+        pass
+
+
     def __init__(self):
         logger.debug("Initializing Component:", self.__class__.__name__)
         if hasattr(self,'ComponentData'):
@@ -54,8 +59,10 @@ class Component:
                 for k in dir(self.ComponentData.Outputs):
                     if k[0] != '_':
                         setattr(self,k,getattr(self.ComponentData.Outputs,k))
-
-        pass
+            if hasattr(self.ComponentData,'services'):
+                self.services = Component._obj()
+                for (name,cls) in self.ComponentData.services.items():
+                    setattr(self.services,name,ServiceFactory.get_service(cls))
 
 def _js_constructor(cls):
     def constr():

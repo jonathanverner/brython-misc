@@ -1,5 +1,5 @@
 import lib.angular.core as ngcore
-from services import ServiceFactory, StatusService
+from services import StatusService
 
 from lib.logger import Logger
 logger = Logger('status_bar.py')
@@ -12,10 +12,11 @@ class StatusBarComponent(ngcore.Component):
         selector = 'ide-status-bar'
         templateUrl = "app/templates/ide/status-bar.component.html"
         directives = []
+        services = {
+            'status':StatusService
+        }
 
 
     def __init__(self):
         super(StatusBarComponent,self).__init__()
-        self.status_service = ServiceFactory.get_service(StatusService)
-        logger.log("Service",self.status_service)
 
