@@ -32,6 +32,10 @@ class Logger:
     def critical(self,*args):
         self.do_log(*args,severity = Logger.SEVERITY_CRITICAL)
 
+    def exception(self,ex):
+        msg = '{0.info}\n{0.__name__}: {0.args[0]}'.format(ex)
+        logger.critical(msg)
+
     def do_log(self,*args,severity=0):
         if (self.level is None and severity >= Logger.global_level) or ( severity >= self.level):
             self._print_log(*args)
