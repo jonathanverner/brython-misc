@@ -5,7 +5,7 @@ class DictStore(object):
     def __init__(self):
         pass
 
-    def search(self, collection, query):
+    def query(self, collection, query):
         raise NotImplementedError()
 
     def get(self, collection, id):
@@ -46,12 +46,17 @@ class FileStore(DictStore):
             self.collections[collection] = {}
         self.collections[collection][obj['id']]=obj
 
-    def search(self,collection,query):
+    def query(self,collection,query):
         result_set = []
-        for obj in self.collections.get(collection,{}).values():
+        for (id,obj) in self.collections.get(collection,{}).items():
+            matches=True
             for attr in query.keys():
-                if obj.get(attr,None) == query[attr]:
-                    result_set.append(obj)
+                if obj.get(attr,None) != query[attr]:
+                    matches = False
+            if matches:
+                ret = dict(obj)
+                ret[id] = obj
+                result_set.append(ret)
         return result_set
 
     def persist(self):
