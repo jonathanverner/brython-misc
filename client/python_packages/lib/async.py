@@ -1,19 +1,21 @@
 from browser import ajax
 
 from lib.logger import Logger
+from lib.events import EventMixin
 logger = Logger(__name__)
 
 class PromiseException(Exception):
     def __init__(self,message):
         super(PromiseException,self).__init__(message)
 
-class Promise:
+class Promise(EventMixin):
     STATUS_NEW = 0
     STATUS_INPROGRESS = 1
     STATUS_FINISHED = 2
     STATUS_ERROR = 3
 
     def __init__(self,start_immediately=True,throw_on_error=True):
+        super(Promise,self).__init__()
         self.throw_on_error = throw_on_error
         self._status  = Promise.STATUS_NEW
         self._success_handler = None
@@ -54,9 +56,13 @@ class Promise:
         if self._status == Promise.STATUS_FINISHED and self._success_handler:
             logger.debug("Calling success handler with results:",self.result)
             self._success_handler(self.result)
+            self.emit('success',self.result)
+            self.unbind()
         elif self._status == Promise.STATUS_ERROR and self._error_handler:
             logger.debug("Calling error handler with error:", self.result)
             self._error_handler(self.result)
+            self.emit('error',self.result)
+            self.unbind()
 
 
 
