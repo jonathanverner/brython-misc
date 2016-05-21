@@ -22,13 +22,16 @@ class SocketFactory:
 
 class RPCClientFactory:
     CLIENTS = {}
+    DEFAULT_URL = 'ws://localhost:8080/'
 
     @classmethod
     def _hash(cls,url,service_name):
         return url+':'+service_name
 
     @classmethod
-    def get_client(cls, url, service_name):
+    def get_client(cls, service_name, url = None):
+        if url is None:
+            url = RPCClientFactory.DEFAULT_URL
         h=cls._hash(url,service_name)
         if h not in cls.CLIENTS:
             cls.CLIENTS[h] = RPCClient(url,service_name)

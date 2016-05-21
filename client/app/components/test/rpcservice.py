@@ -54,6 +54,6 @@ class RPCServiceComponent(ngcore.Component):
     @interruptible
     def ngOnInit(self):
         console.log("Initializing Service Component for", self.service, "at", self.url)
-        self.rpc = yield RPCClientFactory.get_client(self.url,self.service)
+        self.rpc = yield RPCClientFactory.get_client(self.service,self.url)
         self.methods = self.rpc.methods
         console.log("METHODS:",self.methods)
