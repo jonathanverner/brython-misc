@@ -154,8 +154,34 @@ def interruptible(f):
         async.then(succ,err)
         return result
 
+    run.__interruptible = True
+
     return run
 
+def _generate_on_init(obj):
+    def _on_init():
+        obj.__initialized = True
+    return _on_init
+
+def _generate_guard(f):
+    def guard(self,*args,**kwargs):
+        if self.__initialized:
+            f(self,*args,**kwargs)
+        else:
+            logger.warn("Calling method on Uninitialized object")
+
+def async_init(cls):
+    if hasattr(cls.__init__,'__interruptible'):
+        def new_init(self,*args,**kwargs):
+            self.__initialized = False
+            promise = cls.__init__(self,*args,**kwargs)
+            promise.then(_generate_on_init(self))
+
+    for m in dir(cls):
+        if not m[0:2] == '__':
+            meth = getattr(cls,m)
+            if hasattr(meth,'__call__'):
+                setattr(cls,m,_generate_guard(meth))
 
 @interruptible
 def wget_urls(urls):
