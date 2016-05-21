@@ -1,4 +1,8 @@
 import lib.angular.core as ngcore
+from services import ProgressService
+
+from lib.logger import Logger
+logger = Logger(__name__)
 
 
 @ngcore.component

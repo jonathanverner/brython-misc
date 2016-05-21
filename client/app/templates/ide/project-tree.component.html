@@ -1,0 +1,12 @@
+<h3>Available Projects</h3>
+<ul>
+    <li *ngFor="let project of services.projects.project_list">
+        <span (click)="open_project(project)">{{project}}</span>
+    </li>
+</ul>
+<h3>Opened Projects</h3>
+<ul>
+    <li *ngFor="let project of services.projects.open_projects">
+        <span>{{project}}</span>
+    </li>
+</ul>
