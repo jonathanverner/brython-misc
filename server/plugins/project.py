@@ -1,12 +1,51 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from tornado.gen import coroutine,Return
-from ..lib import EndpointHandler, event, update_params
+from tornado.gen import coroutine, Return
+from ..lib.tornado import RPCService, export
 from ..lib.auth import logged_in, auth, AuthMixin
-import lib.git as git
+from ..lib import update_params
+from .lib import git
 
 import os
+
+
+class Project:
+    def __init__(self, meta_data):
+        self.meta = meta_data
+        self._users = []
+        pass
+
+    def stage(self,diff=None):
+        pass
+
+    def commit(self,stage_all=False,commit_message=None):
+        pass
+
+    def create_dir(self,path):
+        pass
+
+    def update_file(self,path,contents):
+        pass
+
+    def read_file(self,path):
+        return "Testing contents"
+
+    def mv(self,path_from,path_to):
+        pass
+
+    def rm(self,path):
+        pass
+
+    def query(self,path=""):
+        return ['test_file.txt','test_file.py']
+
+    def add_user(self,user):
+        pass
+
+    def remove_user(self,user):
+        pass
+
 
 
 def project_opened(f):
@@ -23,7 +62,8 @@ def project_opened(f):
     return decorated
 
 
-class ProjectsEndpoint(EndpointHandler,AuthMixin):
+class ProjectService(RPCService,AuthMixin):
+    SERVICE_NAME = 'project'
     open_projects = {}
     auth_scope = 'projects'
     _setting_scope = 'projects'
@@ -33,123 +73,88 @@ class ProjectsEndpoint(EndpointHandler,AuthMixin):
         'repos_dir':'/tmp/repos'
     }
 
-    @classmethod
-    def _sanitize_git_url(cls,url,reject_local=True):
-        #TODO: Needs a proper impImplementation
-        return url
-
     def _get_open_project(self, project_id):
         proj = self.open_projects.get(project_id,None)
-        if proj is None or self.user not in proj.users:
+        if proj is None or self.session.user not in proj._users:
             return None
         return proj
 
-    @event('open project')
+    @export
     @coroutine
-    @auth('open project')
-    @logged_in #FIXME: Should allow anonymous users, but need to keep track of them in 'users'
     def open_project(self, project_id):
-        if self.authorized('open',project_id):
-            if project_id in self.open_projects:
-                self.open_projects.users[self.user] = True
-                raise Return(self.open_projects[project_id])
-            else:
-                project = self.store.get(project_id)
-                repo = yield git.repo(self.get_setting('workdirs_location'), repo_name=project['id'],clone_url=project['git_url'], branch=project['branch'])
-                self.open_projects[project_id] = {
-                    'project':project,
-                    'repo':repo,
-                    'users':{self.user:True},
-                    'workdir':os.path.join(self.get_setting('workdirs_location'),project['id']),
-                }
-            raise Return(self.open_projects[project_id])
-        else:
-            raise Return(self.error('Unauthorized'))
+        if not project_id in self.open_projects:
+            meta = yield self.store.get("projects",project_id)
+            meta['project_id'] = project_id
+            self.open_projects[project_id] = Project(meta)
+        self.open_projects[project_id].add_user(self.session.user)
+        raise Return(self.open_projects[project_id])
 
-    @event('create project')
+    @export
     @coroutine
-    @auth('create project')
     def create_project(self,data):
-        project = {
-            'owner':self.user.id,
-            'branch':'master',
+        meta = {
+            "owner":self.session.user.id,
         }
-        update_params(project,data,['name','description','type'])
-        project,repo = yield [
-            self.store.save(data),
-            git.repo(self.get_setting('repos_dir'),repo_name=project['id'], bare=True)
-        ]
+        update_params(meta,data,['title'])
+        project = Project(meta)
+        project.add_user(self.session.user)
         raise Return(project)
 
-    @event('clone project')
-    @coroutine
-    @logged_in
-    def import_project(self,data):
-        pass
 
-    @event('close project')
+    @export
     @project_opened
     def close_project(self, project):
-        del project.users[self.user]
-        if len(project.users) == 0:
-            pass
-            # TODO: Do seome garbage collection?
+        project.remove_user(self.session.user)
+        if len(project._users) == 0:
+            del self.open_projects[project.meta['id']]
 
-    @event('commit project')
+    @export
     @coroutine
     @project_opened
-    def commit_project(self, project, stage_all=False,message=''):
-        yield project.repo.commit(stage_all=stage_all,commit_message=message)
-        raise Return(self.success('Commit successful'))
+    def commit_(self, project, stage_all=False, message=''):
+        raise Return(project.commit(stage_all=stage_all,commit_message=message))
 
-    @event('stage change')
+    @export
     @coroutine
     @project_opened
-    @logged_in
-    def stage_change(self, project, diff):
-        yield project.repo.stage(diff=diff)
-        raise Return(self.success('Change staged'))
+    def stage(self, project, diff=None):
+        raise Return(project.stage(diff=diff))
 
-    @event('get staged changes')
+    @export
     @coroutine
     @project_opened
-    @logged_in
-    def staged_changes(self, project):
-        diff = yield project.repo.diff()
-        raise Return(diff)
+    def create_dir(self, project, path, attrs):
+        raise Return(project.create_dir(path))
 
-    @event('create path')
+    @export
     @coroutine
-    @logged_in
     @project_opened
-    def create_path(self, project, path, attrs):
-        node_type = attrs.get('type','file')
-        if project.repo.create_path(path,node_type,attrs):
-            raise Return(self.success('Path created'))
-        else:
-            raise Return(self.error('Path exists'))
+    def update_file(self, project, path, contents):
+        project.update_file(path,contents)
 
-    @event('update path')
+    @export
     @coroutine
-    @logged_in
     @project_opened
-    def update_path(self, project, path, path_info):
-        if 'path' in path_info:
-            project.repo.mv(path,path_info['path'])
-        if 'mode' in path_info:
-            os.chmod(project.repo.absolute_path(path),path_info['mode'])
+    def read_file(self, project, path):
+        project.read_file(path)
 
-    @event('query project')
+    @export
     @coroutine
-    @logged_in
     @project_opened
-    def query_project(self, project, pattern):
-        yield project.repo.lsR(pattern = pattern)
+    def mv(self, project, path_from, path_to):
+        project.mv(path_from,path_to)
 
-    @event('query projects')
+    @export
     @coroutine
-    @logged_in
-    def query_project(self, query):
-        yield self.store.get('projects',query)
+    @project_opened
+    def rm(self, project, path_from, path_to):
+        project.mv(path_from,path_to)
 
-endpoints = [('/projects',ProjectsEndpoint)]
+
+    @export
+    @coroutine
+    @project_opened
+    def query(self, project, pattern=""):
+        raise Return(project.query(pattern = pattern))
+
+services = [ProjectService]

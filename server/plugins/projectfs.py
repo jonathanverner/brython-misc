@@ -1,40 +1,31 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from ..lib import EndpointHandler, event, update_params
-from ..lib.auth import logged_in, auth
+from ..lib.tornado import RPCService, export
 
-class ProjectFSEndpoint(EndpointHandler):
-    @event('query')
-    @logged_in
-    def query(self,query):
-        query['user_id'] = self.user.id
+class ProjectFSService(RPCService):
+    SERVICE_NAME = 'projectfs'
+
+    @export
+    def query(self,query={}):
+        query['user_id'] = self.session.user.id
         return self.store.get('projectfss',query)
 
-    @event("move label")
-    @logged_in
+    @export
     def move_label(self,orig,dest):
         pass
 
-    @event('remove label')
-    @logged_in
+    @export
     def remove_label(self,label):
         pass
 
-    @event('create_label')
-    @logged_in
+    @export
     def create_label(self,path):
         pass
 
-    @event('label')
-    @logged_in
+    @export
     def label(self,project_id,path):
         pass
 
-
-
-
-
-endpoints = [('/projectfs',ProjectFSEndpoint)]
-
+services = [ProjectFSService]
 
