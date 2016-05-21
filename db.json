@@ -1,0 +1,46 @@
+{
+    "collections":{
+        "users": {
+            "0": {
+              "name":"Jonathan",
+              "surname":"Verner",
+              "email":"jonathan@temno.eu"
+            },
+            "1": {
+              "name":"John",
+              "surname":"Smith",
+              "email":"smith@gmail.com"
+            },
+            "2":{
+              "name":"Anonymous",
+              "surname":"Anonymous",
+              "email":"anonymous@anonymous.com"
+            }
+        },
+        "projects": {
+            "2": {
+                "title":"Test project",
+                "owner":"0",
+                "repo":"git@gandalf.temno.eu:~test",
+                "work_dir":"test",
+                "read_tokens":["heslo_read"],
+                "write_tokens":["heslo_write"],
+                "update_meta":["heslo_meta"]
+            }
+
+        },
+        "projectfss": {
+            "3":{
+                "user_id":"0",
+                "label":"/test",
+                "project":"3"
+              },
+            "4":{
+                "user_id":"1",
+                "label":"/shared/test",
+                "project":"3",
+                "tokens":["heslo_write"]
+            }
+        }
+    }
+}
