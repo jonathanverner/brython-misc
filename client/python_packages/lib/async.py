@@ -1,4 +1,7 @@
-from browser import ajax, window,console
+from browser import ajax
+
+from lib.logger import Logger
+logger = Logger(__name__)
 
 class PromiseException(Exception):
     def __init__(self,message):
@@ -18,7 +21,7 @@ class Promise:
         self._result = None
         if start_immediately:
             self.start()
-    
+
     def then(self, success_handler, error_handler = None):
         self._success_handler = success_handler
         self._error_handler = error_handler
@@ -49,10 +52,10 @@ class Promise:
         self._result = result
         self._status = status
         if self._status == Promise.STATUS_FINISHED and self._success_handler:
-            console.log("Calling success handler with results:",self.result)
+            logger.debug("Calling success handler with results:",self.result)
             self._success_handler(self.result)
         elif self._status == Promise.STATUS_ERROR and self._error_handler:
-            console.log("Calling error handler with error:", self.result)
+            logger.debug("Calling error handler with error:", self.result)
             self._error_handler(self.result)
 
 
@@ -60,19 +63,19 @@ class Promise:
 class Return:
     def __init__(self,val):
         self.val = val
-    
+
 
 class HTTPException(Exception):
     def __init__(self,request):
         super(HTTPException,self).__init__()
         self.req = request
-        
+
 
 class HTTPRequest(Promise):
     METHOD_POST = 'POST'
     METHOD_GET  = 'GET'
 
-    
+
     def __init__(self,url,method='GET',data=None,**kwargs):
         self._url = url
         self._req = ajax.ajax()
@@ -80,7 +83,7 @@ class HTTPRequest(Promise):
         self._data = data
         self._method = method
         super(HTTPRequest,self).__init__(**kwargs)
-    
+
     def start(self):
         if super(HTTPRequest,self).start():
             self._req.open(self._method,self._url,True)
@@ -92,7 +95,7 @@ class HTTPRequest(Promise):
             return True
         else:
             return False
-    
+
     def _complete_handler(self,req):
         if req.status == 200 or req.status == 0:
             self._finish(req)
@@ -101,7 +104,7 @@ class HTTPRequest(Promise):
 
 
 def get_continuation(generator,result,throw_on_error=False):
-        
+
     def run(val):
         try:
             async = generator.send(val)
@@ -114,7 +117,7 @@ def get_continuation(generator,result,throw_on_error=False):
             result._finish(None)
         except Exception as ex:
             result._finish(ex,status=Promise.STATUS_ERROR)
-            
+
 
     def error(ex):
         try:
@@ -131,7 +134,7 @@ def get_continuation(generator,result,throw_on_error=False):
             result._finish(None)
         except Exception as ex:
             result._finish(ex,status=Promise.STATUS_ERROR)
-            
+
     return run,error
 
 

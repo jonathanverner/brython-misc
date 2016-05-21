@@ -1,10 +1,12 @@
 import javascript
-from browser import document, console
+from browser import document
 from .jsdict import JSDict
 from jsmodules import jsimport
 from jsconverters import pyobj2js
+from lib.logger import Logger
 
 jsng = jsimport('ng')
+logger = Logger(__name__)
 
 class _ng:
     class core:
@@ -42,7 +44,7 @@ class Component:
     _component = None
 
     def __init__(self):
-        console.log("Initializing Component:", self.__class__.__name__)
+        logger.debug("Initializing Component:", self.__class__.__name__)
         if hasattr(self,'ComponentData'):
             if hasattr(self.ComponentData,'Inputs'):
                 for k in dir(self.ComponentData.Inputs):
@@ -118,8 +120,8 @@ def component(cls):
                     attr_dict['outputs'].append(k)
 
     meta = JSDict(attr_dict)
-    console.log("Meta:",meta)
-    console.log("CLS:",jscls)
+    logger.debug("Meta:",meta)
+    logger.debug("CLS:",jscls)
 
     cls._component = jsng.core.Component(meta).Class(jscls)
     return cls

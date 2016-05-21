@@ -1,0 +1,40 @@
+<p-menubar>
+     <ul>
+         <li> <a data-icon="fa-file-o"><span>File</span></a>
+             <ul>
+                 <li><a data-icon="fa-plus"><span>New</span></a>
+                     <ul>
+                         <li><a><span>Project</span></a></li>
+                         <li><a><span>Other</span></a></li>
+                     </ul>
+                 </li>
+                 <li><a><span>Open</span></a></li>
+                 <li><a><span>Quit</span></a></li>
+             </ul>
+         </li>
+         <li> <a data-icon="fa-edit">Edit</a>
+             <ul>
+                 <li><a data-icon="fa-mail-forward"><span>Undo</span></a></li>
+                 <li><a data-icon="fa-mail-reply"><span>Redo</span></a></li>
+             </ul>
+         </li>
+     </ul>
+</p-menubar>
+<h1 #header>My First Angular 2 App: {{ title }} </h1>
+<click-me [title]="'Ahoj'"></click-me><br/>
+Title: <input [(ngModel)] = "title" (keyup)="on_key($event)"/><br/>
+Check: <input type='checkbox' [(ngModel)] = "checked"/><br/>
+Log: {{values }}<br/>
+Text: {{ doc.value }} <br/>
+Service Status: {{ chat_service.status }}<br/>
+Service Methods:
+<ul>
+<li *ngFor="let method of chat_service.methods">
+    {{ method[0] }}( <span *ngFor="let arg of method[1]"> {{arg[0]}}<span *ngIf="arg[1]=='True'">={{arg[2]}}</span>,</span>)
+</li>
+</ul>
+<rpc-service [url]="'ws://localhost:8080/'" [service]="'chat'">
+</rpc-service>
+<button (click)="clear_doc()">Clear</button><br/>
+<codemirror [options]='cm_options' [doc]="doc" (change)="doc_change($event)">
+</codemirror>

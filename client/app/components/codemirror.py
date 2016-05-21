@@ -1,7 +1,11 @@
-from angular import core as ngcore
-from browser import console, timer
-from jsmodules import jsimport
 import javascript
+from browser import timer
+from jsmodules import jsimport
+from lib.angular import core as ngcore
+from lib.logger import Logger
+
+logger = Logger(__name__)
+
 
 CodeMirror = jsimport('CodeMirror')
 CodeMirror.js_func = CodeMirror

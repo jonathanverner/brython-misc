@@ -1,14 +1,14 @@
-import angular.core
+import lib.angular.core as ngcore
 from browser import console
-from RPCClient import RPCClientFactory
-from async import interruptible
+from lib.RPCClient import RPCClientFactory
+from lib.async import interruptible
 
-@angular.core.component
-class RPCMethodComponent(angular.core.Component):
+@ngcore.component
+class RPCMethodComponent(ngcore.Component):
 
     class ComponentData:
         selector = 'rpc-method'
-        templateUrl = "app/templates/RPCMethod.component.html"
+        templateUrl = "app/templates/test/RPCMethod.component.html"
 
         class Inputs:
             method = ('name','args',5)
@@ -34,12 +34,12 @@ class RPCMethodComponent(angular.core.Component):
         self.result = yield self.meth(*self.args)
 
 
-@angular.core.component
-class RPCServiceComponent(angular.core.Component):
+@ngcore.component
+class RPCServiceComponent(ngcore.Component):
 
     class ComponentData:
         selector = 'rpc-service'
-        templateUrl = "app/templates/RPCService.component.html"
+        templateUrl = "app/templates/test/RPCService.component.html"
         directives = [RPCMethodComponent]
 
         class Inputs:

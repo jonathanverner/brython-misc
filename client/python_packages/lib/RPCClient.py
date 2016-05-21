@@ -1,8 +1,10 @@
 import json
-from browser import console, websocket
-from async import Promise, interruptible, Return
-from angular import core as ngcore
+from browser import websocket
+from lib.angular import core as ngcore
+from lib.async import Promise, interruptible, Return
+from lib.logger import Logger
 
+logger = Logger(__name__)
 
 class SocketFactory:
     SOCKETS = {}
@@ -69,14 +71,14 @@ class RPCClient:
     def _generate_method(self,method_name,svc_name=None):
         if svc_name is None:
             svc_name = self._service_name
-        console.log("Generating method ",method_name, " of ", svc_name)
+        logger.debug("Generating method ",method_name, " of ", svc_name)
 
         def remote_call(*args,**kwargs):
-            console.log("Calling ",method_name, "self:",self,"*args:",args, "**kwargs",kwargs)
+            logger.debug("Calling ",method_name, "self:",self,"*args:",args, "**kwargs",kwargs)
 
             if not self.status == RPCClient.STATUS_READY:
                 if (not self.status == RPCClient.STATUS_QUERYING_SERVICE) or (not svc_name == '__system__'):
-                    console.log("STATUS:", self.status, "SVC:", svc_name)
+                    logger.debug("STATUS:", self.status, "SVC:", svc_name)
                     raise Exception("Service not in operation:", self.status)
 
             ret = Promise()
@@ -89,7 +91,7 @@ class RPCClient:
                 'client_id':self._client_id
             }
             self._calls_in_progress[data['call_id']] = ret
-            console.log("Sending data:",json.dumps(data))
+            logger.debug("Sending data:",json.dumps(data))
             self._socket.send(json.dumps(data))
             return ret
         setattr(self,method_name,remote_call)
@@ -97,7 +99,7 @@ class RPCClient:
 
     @ngcore.export2js
     def __init__(self, url, service_name):
-        console.log("Calling RPCClient init")
+        logger.debug("Calling RPCClient init")
         self._url = url
         self._socket = SocketFactory.get_socket(url)
         self._service_name = service_name
@@ -131,7 +133,7 @@ class RPCClient:
             return []
 
     def ready_promise(self):
-        console.log("!!! READY PROMISE NOT IMPLEMENTED !!!")
+        logger.debug("!!! READY PROMISE NOT IMPLEMENTED !!!")
         raise Exception("NOT IMPLEMENTED")
         return None
         rt = Promise()
@@ -145,11 +147,11 @@ class RPCClient:
 
     @interruptible
     def _on_open(self,evt=None):
-        console.log("Web Socket Open, querying service", self._service_name, "STATUS:",self.status)
+        logger.debug("Web Socket Open, querying service", self._service_name, "STATUS:",self.status)
         self._status = RPCClient.STATUS_QUERYING_SERVICE
-        console.log("Transitioning to status:",self.status)
+        logger.debug("Transitioning to status:",self.status)
         self._methods = yield self.query_service(self._service_name)
-        console.log("Loading methods",self._methods)
+        logger.debug("Loading methods",self._methods)
         for m in self._methods.keys():
             self._generate_method(m)
         self._status = RPCClient.STATUS_READY
@@ -170,7 +172,7 @@ class RPCClient:
         else:
             if not msg['service'] == self._service_name or not msg['service'] == '__system__':
                 return
-        console.log("Processing message:", msg)
+        logger.debug("Processing message:", msg)
         if msg['type'] == 'event':
             handlers = self._event_handlers.get(msg['event'],[])
             for handler in handlers:
@@ -178,13 +180,13 @@ class RPCClient:
         elif msg['type'] == 'return':
             result_promise = self._calls_in_progress[msg['call_id']]
             del self._calls_in_progress[msg['call_id']]
-            console.log("Result:", msg['result'])
-            console.log("Finishing call:", result_promise)
+            logger.debug("Result:", msg['result'])
+            logger.debug("Finishing call:", result_promise)
             result_promise._finish(msg['result'])
         elif msg['type'] == 'exception':
             result_promise = self._calls_in_progress[msg['call_id']]
             del self._calls_in_progress[msg['call_id']]
-            console.log("Finishing call", result_promise)
+            logger.debug("Finishing call", result_promise)
             result_promise._finish(msg['exception'],status=Promise.STATUS_ERROR)
 
     def bind(self,event,handler):

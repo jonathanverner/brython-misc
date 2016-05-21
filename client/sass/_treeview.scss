@@ -1,0 +1,49 @@
+[data-widget='TreeView'][data-view='root'] {
+    position:relative;
+}
+[data-widget='TreeView'] {
+    li {
+        list-style-type:none;
+    }
+    ul {
+        padding-left:12pt;
+    }
+    [data-widget='CollapsibleLabel'] {
+        cursor:pointer;
+        display:inline-block;
+        width:100%;
+    }
+    [data-widget='CollapsibleLabel'] {
+        [data-collapsible='true'] {
+            font-family:'Glyphicons Halflings';
+            font-size:smaller;
+        }
+        [data-widget='background'] {
+            position:absolute;
+            left:0px;
+            width:100%;
+            height:15pt;
+            z-index:-1;
+        }
+    }
+    [data-widget="CollapsibleLabel"][data-selected="true"] {
+        background-color:$active-bg;
+        color:$active-fg;
+        [data-widget='background'] {
+            background-color:$active-bg;
+        }
+    }
+    [data-widget="CollapsibleLabel"][data-closed="false"] {
+        [data-collapsible='true']:before {
+            padding-right:0.5em;
+            content:"\e252"
+        }
+    }
+    [data-widget="CollapsibleLabel"][data-closed="true"] {
+        [data-collapsible='true']:before {
+            padding-right:0.5em;
+            content:"\e072"
+        }
+    }
+
+}

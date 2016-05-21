@@ -1,8 +1,8 @@
-import angular.core
+import lib.angular.core as ngcore
 from browser import console
 
-@angular.core.component
-class ClickComponent(angular.core.Component):
+@ngcore.component
+class ClickComponent(ngcore.Component):
 
     class ComponentData:
         selector = 'click-me'
