@@ -1,0 +1,6 @@
+backports-abc==0.4
+bcrypt==2.0.0
+cffi==1.6.0
+pycparser==2.14
+six==1.10.0
+tornado==4.3
