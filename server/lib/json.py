@@ -22,6 +22,7 @@ class ObjectEncoder(json.JSONEncoder):
                 and not inspect.ismethod(value)
                 and not inspect.ismethoddescriptor(value)
                 and not inspect.isroutine(value)
+                and not isinstance(value,set)
             )
             return self.default(d)
         return obj

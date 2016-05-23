@@ -162,7 +162,7 @@ class RPCServer(WebSocketHandler):
             method = getattr(svc,method)
             if hasattr(method,'__expose_to_remote'):
                 print("Calling method",msg['method'],"args:",args,"kwargs:",kwargs)
-                result = yield method(*args,**kwargs)
+                result = yield gen.maybe_future(method(*args,**kwargs))
             else:
                 print("Method",method,"not available")
                 raise RPCException("Method not available")
@@ -174,7 +174,9 @@ class RPCServer(WebSocketHandler):
                 'result':result
             }))
         except Exception as ex:
-            print("Exception:", ex)
+            import traceback
+            traceback.print_exc()
+            print("RESULT:",result)
             self.write_message(to_json({
                     'service':svc_name,
                     'type':'exception',

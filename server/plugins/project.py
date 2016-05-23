@@ -15,7 +15,7 @@ import os
 class Project:
     def __init__(self, meta_data):
         self.meta = meta_data
-        self._users = []
+        self._users = set()
         pass
 
     def stage(self,diff=None):
@@ -39,14 +39,14 @@ class Project:
     def rm(self,path):
         pass
 
-    def query(self,path=""):
+    def query(self,pattern=""):
         return ['test_file.txt','test_file.py']
 
     def add_user(self,user):
-        pass
+        self._users.add(user)
 
     def remove_user(self,user):
-        pass
+        self._users.remove(user)
 
 
 
@@ -55,13 +55,15 @@ def project_opened(f):
     def decorated(self,*args,**kwargs):
         id = kwargs.get('project_id',None)
         if id is None:
-            return self.error('Need to specify a project')
+            raise Exception('Need to specify a project')
         project = self._get_open_project(id)
         if project is None:
-            return self.error('Project not opened')
+            raise Exception('Project not opened:', id)
         del kwargs['project_id']
-        kwargs['project'] = project
-        return f(self,*args,**kwargs)
+        #kwargs['project'] = project
+        #print("KWARGS:",kwargs)
+        #print("ARGS:",args)
+        return f(self,project,*args,**kwargs)
     return decorated
 
 
@@ -83,16 +85,18 @@ class ProjectService(RPCService,AuthMixin):
         return proj
 
     @export
-    def open_project(self, project_id):
+    def open(self, project_id):
         if not project_id in self.open_projects:
             meta = yield self._api.store.get("projects",project_id)
+            if meta is None:
+                raise Exception("No such project: " + str(project_id))
             meta['project_id'] = project_id
             self.open_projects[project_id] = Project(meta)
         self.open_projects[project_id].add_user(self._api.session.user)
         raise Return(self.open_projects[project_id])
 
     @export
-    def create_project(self,data):
+    def create(self,data):
         meta = {
             "owner":self._api.session.user.id,
         }

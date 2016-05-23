@@ -1,21 +1,14 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from tornado.gen import coroutine
-from ..lib.tornado import RPCService, export
+from tornado.gen import coroutine, Return
+from ..lib.tornado import RPCService, RPCException, export
 from ..lib import update_params
 
 class UserService(RPCService):
     SERVICE_NAME = 'user'
     user_editable_profile_attrs = ['name','surname']
 
-    def __init__(self, server):
-        super(UserService,self).__init__(server)
-        self.session.user={
-            'name':'Anonymous',
-            'surname':'Anonumous',
-            'email':'invalid@invalid.com'
-        }
     class User:
         def __init__(self,data):
             for (k,v) in data.items():
@@ -29,6 +22,10 @@ class UserService(RPCService):
                 'email':'invalid@invalid.com',
                 'id':None
             })
+
+
+    def __init__(self, server_api):
+        super(UserService,self).__init__(server_api)
 
     @classmethod
     def on_open(cls,server_api):
@@ -52,7 +49,10 @@ class UserService(RPCService):
     def login(self,email,password=None):
         users = yield self._api.store.query('users',{'email':email})
         if len(users) > 0:
-            self.session.user=users[0]
+            print(users)
+            self._api.session.user=UserService.User(users[0])
+            return self._api.session.user
+        raise RPCException('Invalid user or password: '+email)
 
 
 services = [UserService]
