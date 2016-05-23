@@ -168,6 +168,25 @@ def _generate_on_init(obj):
         obj.__initialized = True
     return _on_init
 
+def defer(promise, f, *args, **kwargs):
+    ret = Promise()
+    def on_success(event):
+        logger.info("Calling deferred method ",func_name(f)," object is initialized.")
+        logger.info("Args:",args)
+        logger.info("Kwargs:", kwargs)
+        ret._finish(f(*args,**kwargs))
+    def on_error(event):
+        logger.error("Unable to call deferred method ",func_name(f),", object failed to initialize properly.")
+        logger.error("Event:",event)
+        ret._finish(event.data, status=Promise.STATUS_ERROR)
+    if ret.status == Promise.STATUS_FINISHED:
+        on_success(Event('success',None,ret._result))
+    elif ret.status == Promise.STATUS_ERROR:
+        on_error(Event('error',None,ret._result))
+    else:
+        promise.bind('success',on_success)
+        promise.bind('error',on_error)
+    return ret
 def _generate_guard(f):
     def guard(self,*args,**kwargs):
         if self.__initialized:
