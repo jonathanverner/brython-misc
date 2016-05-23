@@ -12,7 +12,7 @@ class Logger:
 
     def __init__(self,prefix,level=None):
         self.prefix = prefix
-        self.level = None
+        self.level = level
 
     def debug(self,*args):
         self.do_log(*args,severity = Logger.SEVERITY_DEBUG)
@@ -34,7 +34,7 @@ class Logger:
 
     def exception(self,ex):
         msg = '{0.info}\n{0.__name__}: {0.args[0]}'.format(ex)
-        logger.critical(msg)
+        self.critical(msg)
 
     def do_log(self,*args,severity=0):
         if (self.level is None and severity >= Logger.global_level) or ( severity >= self.level):
