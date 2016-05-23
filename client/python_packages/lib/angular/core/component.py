@@ -7,7 +7,7 @@ from jsconverters import pyobj2js
 from lib.logger import Logger
 
 jsng = jsimport('ng')
-logger = Logger(__name__)
+logger = Logger(__name__,level=Logger.SEVERITY_ERROR)
 
 class _ng:
     class core:
