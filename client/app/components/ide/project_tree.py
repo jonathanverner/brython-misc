@@ -21,4 +21,4 @@ class ProjectTreeComponent(ngcore.Component):
         super(ProjectTreeComponent,self).__init__()
 
     def open_project(self,project):
-        self.services.projects.open_project(project['id'])
+        self.services.projects.open_project(project.project_id)

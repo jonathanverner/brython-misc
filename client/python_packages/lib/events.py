@@ -32,7 +32,6 @@ class Event:
 class EventMixin:
 
     def __init__(self):
-        logger.debug("Initializing Event Mixin")
         self._handlers = {}
 
     def bind(self, event, handler, forward_event=None):
