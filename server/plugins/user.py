@@ -16,6 +16,24 @@ class UserService(RPCService):
             'surname':'Anonumous',
             'email':'invalid@invalid.com'
         }
+    class User:
+        def __init__(self,data):
+            for (k,v) in data.items():
+                setattr(self,k,v)
+
+        @classmethod
+        def anonymous(cls):
+            return cls({
+                'name':'Anonymous',
+                'surname':'Anonumous',
+                'email':'invalid@invalid.com',
+                'id':None
+            })
+
+    @classmethod
+    def on_open(cls,server_api):
+        print("Registering Default Anonymous User")
+        server_api.session.user = UserService.User.anonymous()
 
     @export
     def get_profile(self):

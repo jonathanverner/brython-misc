@@ -100,6 +100,10 @@ class RPCServer(WebSocketHandler):
     def open(self):
         print("Opening")
         RPCServer.ACTIVE_CLIENTS.add(self)
+        for (name,svc) in RPCServer.REGISTERED_SERVICES.items():
+            if hasattr(svc,'on_open'):
+                svc.on_open(RPCSvcApi(self,name))
+
         
     def _get_service(self,name):
         if name in self._services:
