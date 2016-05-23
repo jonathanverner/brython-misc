@@ -152,8 +152,11 @@ def interruptible(f):
         generator = f(*args,**kwargs)
         async = next(generator)
         result = Promise()
-        succ,err = get_continuation(generator,result)
-        async.then(succ,err)
+        if isinstance(async,Return):
+            result._finish(async.val)
+        else:
+            succ,err = get_continuation(generator,result)
+            async.then(succ,err)
         return result
 
     run.__interruptible = True
