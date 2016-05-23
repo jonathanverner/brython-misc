@@ -13,4 +13,5 @@ def export2jscls(cls):
             cls.__init__(self,*args,**kwargs)
             pyobj2js(self)
         cls.__init__ = constructor
+    return cls
 
