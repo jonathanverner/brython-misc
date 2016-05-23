@@ -7,6 +7,6 @@ class AdminService(RPCService):
     @coroutine
     @export
     def persists_storage(self):
-        yield self.storage.persist()
+        yield self._api.store.persist()
 
 services = [AdminService]

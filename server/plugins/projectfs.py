@@ -8,8 +8,9 @@ class ProjectFSService(RPCService):
 
     @export
     def query(self,query={}):
-        query['user_id'] = self.session.user.id
-        return self.store.get('projectfss',query)
+        query['user_id'] = self._api.session.user.id
+        ret = yield self._api.store.query('projectfss',query)
+        return ret
 
     @export
     def move_label(self,orig,dest):

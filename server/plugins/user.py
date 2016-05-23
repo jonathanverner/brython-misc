@@ -19,20 +19,20 @@ class UserService(RPCService):
 
     @export
     def get_profile(self):
-        return self.session.user
+        return self._api.session.user
 
     @export
     def update_profile(self,profile):
         update_params(self.session.user,profile,self.user_editable_profile_attrs)
-        self.storage.save(self.session.user)
+        yield self._api.store.save(self.session.user)
 
     @export
     def query(self, query):
-        return self.storage.query('users',query)
+        return self._api.store.query('users',query)
 
     @export
     def login(self,email,password=None):
-        users = yield self.storage.query('users',{'email':email})
+        users = yield self._api.store.query('users',{'email':email})
         if len(users) > 0:
             self.session.user=users[0]
 

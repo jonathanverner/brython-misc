@@ -15,7 +15,7 @@ class RPCService:
     SERVICE_NAME = 'RPCService'
 
     def __init__(self,server_api):
-        self._server = server_api
+        self._api = server_api
     
     def client_disconnected(self):
         pass
@@ -44,12 +44,24 @@ class RPCSvcApi:
     @property
     def client_id(self):
         return self.server._client_id
+
+    @property
+    def session(self):
+        return self.server.session
+
+    @property
+    def store(self):
+        return self.server.store
         
 class RPCServer(WebSocketHandler):
     REGISTERED_SERVICES = {}
     ACTIVE_CLIENTS = set()
     LAST_CLIENT_ID = 0
     BROADCAST_GROUPS = {}
+
+    class Session:
+        pass
+
     
     @classmethod
     def _generate_client_id(cls):
@@ -77,6 +89,7 @@ class RPCServer(WebSocketHandler):
             '__system__':self
         }
         self._call_id = 0
+        self.session = RPCServer.Session()
 
     def client_connected(self):
         pass
