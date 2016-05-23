@@ -4,12 +4,12 @@ from tornado import gen
 
 from ..json import to_json
 
+@decorator
 def export(f):
     @gen.coroutine
     def async_f(*args, **kwargs):
         raise gen.Return(f(*args,**kwargs))
     async_f.__expose_to_remote = True
-    async_f._original_f = f
     return async_f
 
 class RPCService:
@@ -113,8 +113,8 @@ class RPCServer(WebSocketHandler):
             try:
                 m = getattr(svc,attr)
                 if inspect.ismethod(m) and hasattr(m,'__expose_to_remote'):
-                    if hasattr(m,'_original_f'):
-                        sig = inspect.signature(m._original_f)
+                    if hasattr(m,'_undecorated'):
+                        sig = inspect.signature(m._undecorated)
                     else:
                         print("No original method???", dir(m))
                         sig = inspect.signature(m)

@@ -48,6 +48,7 @@ class Project:
 
 
 
+@decorator
 def project_opened(f):
     def decorated(self,*args,**kwargs):
         id = kwargs.get('project_id',None)

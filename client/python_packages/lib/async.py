@@ -2,6 +2,7 @@ from browser import ajax
 
 from lib.logger import Logger
 from lib.events import EventMixin
+from lib.decorator import decorator, func_name
 logger = Logger(__name__)
 
 class PromiseException(Exception):
@@ -146,6 +147,7 @@ def get_continuation(generator,result,throw_on_error=False):
     return run,error
 
 
+@decorator
 def interruptible(f):
 
     def run(*args,**kwargs):
@@ -187,6 +189,8 @@ def defer(promise, f, *args, **kwargs):
         promise.bind('success',on_success)
         promise.bind('error',on_error)
     return ret
+
+@decorator
 def _generate_guard(f):
     def guard(self,*args,**kwargs):
         if self.__initialized:
