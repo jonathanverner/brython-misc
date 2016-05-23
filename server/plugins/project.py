@@ -7,6 +7,8 @@ from ..lib.auth import logged_in, auth, AuthMixin
 from ..lib import update_params
 from .lib import git
 
+from ..lib.decorator import decorator
+
 import os
 
 
@@ -76,34 +78,34 @@ class ProjectService(RPCService,AuthMixin):
 
     def _get_open_project(self, project_id):
         proj = self.open_projects.get(project_id,None)
-        if proj is None or self.session.user not in proj._users:
+        if proj is None or self._api.session.user not in proj._users:
             return None
         return proj
 
     @export
     def open_project(self, project_id):
         if not project_id in self.open_projects:
-            meta = yield self.store.get("projects",project_id)
+            meta = yield self._api.store.get("projects",project_id)
             meta['project_id'] = project_id
             self.open_projects[project_id] = Project(meta)
-        self.open_projects[project_id].add_user(self.session.user)
+        self.open_projects[project_id].add_user(self._api.session.user)
         raise Return(self.open_projects[project_id])
 
     @export
     def create_project(self,data):
         meta = {
-            "owner":self.session.user.id,
+            "owner":self._api.session.user.id,
         }
         update_params(meta,data,['title'])
         project = Project(meta)
-        project.add_user(self.session.user)
+        project.add_user(self._api.session.user)
         raise Return(project)
 
 
     @export
     @project_opened
     def close_project(self, project):
-        project.remove_user(self.session.user)
+        project.remove_user(self._api.session.user)
         if len(project._users) == 0:
             del self.open_projects[project.meta['id']]
 

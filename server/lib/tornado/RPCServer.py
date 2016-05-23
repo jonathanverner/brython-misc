@@ -2,6 +2,7 @@ import json, inspect
 from tornado.websocket import WebSocketHandler
 from tornado import gen
 
+from ..decorator import decorator
 from ..json import to_json
 
 @decorator
