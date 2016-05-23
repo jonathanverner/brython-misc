@@ -6,9 +6,8 @@ from ..json import to_json
 
 @decorator
 def export(f):
-    @gen.coroutine
     def async_f(*args, **kwargs):
-        raise gen.Return(f(*args,**kwargs))
+        return gen.coroutine(f)(*args,**kwargs)
     async_f.__expose_to_remote = True
     return async_f
 

@@ -31,7 +31,6 @@ class UserService(RPCService):
         return self.storage.query('users',query)
 
     @export
-    @coroutine
     def login(self,email,password=None):
         users = yield self.storage.query('users',{'email':email})
         if len(users) > 0:

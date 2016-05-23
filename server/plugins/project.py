@@ -81,7 +81,6 @@ class ProjectService(RPCService,AuthMixin):
         return proj
 
     @export
-    @coroutine
     def open_project(self, project_id):
         if not project_id in self.open_projects:
             meta = yield self.store.get("projects",project_id)
@@ -91,7 +90,6 @@ class ProjectService(RPCService,AuthMixin):
         raise Return(self.open_projects[project_id])
 
     @export
-    @coroutine
     def create_project(self,data):
         meta = {
             "owner":self.session.user.id,
@@ -110,50 +108,42 @@ class ProjectService(RPCService,AuthMixin):
             del self.open_projects[project.meta['id']]
 
     @export
-    @coroutine
     @project_opened
     def commit_(self, project, stage_all=False, message=''):
         raise Return(project.commit(stage_all=stage_all,commit_message=message))
 
     @export
-    @coroutine
     @project_opened
     def stage(self, project, diff=None):
         raise Return(project.stage(diff=diff))
 
     @export
-    @coroutine
     @project_opened
     def create_dir(self, project, path, attrs):
         raise Return(project.create_dir(path))
 
     @export
-    @coroutine
     @project_opened
     def update_file(self, project, path, contents):
         project.update_file(path,contents)
 
     @export
-    @coroutine
     @project_opened
     def read_file(self, project, path):
         project.read_file(path)
 
     @export
-    @coroutine
     @project_opened
     def mv(self, project, path_from, path_to):
         project.mv(path_from,path_to)
 
     @export
-    @coroutine
     @project_opened
     def rm(self, project, path_from, path_to):
         project.mv(path_from,path_to)
 
 
     @export
-    @coroutine
     @project_opened
     def query(self, project, pattern=""):
         raise Return(project.query(pattern = pattern))
