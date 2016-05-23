@@ -7,38 +7,37 @@ from lib.events import EventMixin
 from lib.logger import Logger
 logger = Logger(__name__)
 
-
 class Project(EventMixin):
 
     def __init__(self,rpc,data):
         super(Project,self).__init__()
         self.rpc = rpc
-        self.data = self.data
-        self.files = []
+        self.data = JSDict(data["meta"])
 
     @interruptible
-    def _load_files(self,path):
-        self.files = yield self.query_files(self,"")
+    def _load_files(self,path=""):
+        logger.log("Loading files")
+        self.files = yield self.query_files(path)
 
     def close(self):
-        promise =  self.rpc.close_project(self.data.id)
+        promise =  self.rpc.close_project(project_id=self.data.project_id)
         promise.bind('success',self,'closed')
         return promise
 
     def commit(self):
-        return self.rpc.commit_project(self.data.id)
+        return self.rpc.commit_project(project_id=self.data.project_id)
 
     def create_path(self, path):
-        return self.rpc.create_path(path)
+        return self.rpc.create_path(path,project_id=self.data.project_id)
 
     def update_file(self,path,contents):
-        return self.rpc.update_file(self.data.id,path,contents)
+        return self.rpc.update_file(path,contents,project_id=self.data.project_id)
 
     def read_file(self,path):
-        return self.rpc.get_file(self.data.id,path)
+        return self.rpc.get_file(path,project_id=self.data.project_id)
 
     def query_files(self,path):
-        return self.rpc.query_file(self.data.id,path)
+        return self.rpc.query(path,project_id=self.data.project_id)
 
 @async_class
 class ProjectService(Service):
@@ -55,12 +54,19 @@ class ProjectService(Service):
 
     @interruptible
     def open_project(self,project_id):
-        project_data = yield self._rpc_project.open(project_id)
-        project = Project(self._rpc_project,project_data)
-        self.open_projects.append(project)
-        project.bind('closed',self._close_project)
-        yield project._load_files()
-        yield Return(project)
+        try:
+            for p in self.open_projects:
+                if p.data.project_id == project_id:
+                    logger.info("Project already open:", p.data.title, "(id:",project_id,")")
+                    yield Return(p)
+            project_data = yield self._rpc_project.open(project_id)
+            project = Project(self._rpc_project,project_data)
+            self.open_projects.append(project)
+            yield project._load_files()
+            yield Return(project)
+        except Exception as ex:
+            logger.log("Exception when opening project:",ex)
+            logger.exception(ex)
 
     @interruptible
     def _close_project(self,event):
