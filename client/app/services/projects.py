@@ -1,6 +1,7 @@
 from lib.RPCClient import RPCClientFactory
-from lib.angular.core import Service
-from lib.async import interruptible, async_init, Return
+from lib.angular.core import Service, JSDict
+import lib.angular.core as ngcore
+from lib.async import interruptible, interruptible_init, async_class, Return
 from lib.events import EventMixin
 
 from lib.logger import Logger
@@ -39,17 +40,18 @@ class Project(EventMixin):
     def query_files(self,path):
         return self.rpc.query_file(self.data.id,path)
 
+@async_class
 class ProjectService(Service):
 
-    @interruptible
+    @interruptible_init
     def __init__(self):
         super(ProjectService,self).__init__()
         self.project_list = []
         self.open_projects = []
         self._rpc_project = yield RPCClientFactory.get_client('project')
         self._rpc_projectfs = yield RPCClientFactory.get_client('projectfs')
-        self.project_list = yield self._rpc_projectfs.query()
-        self._initialized = True
+        project_list = yield self._rpc_projectfs.query()
+        self.project_list = [ ngcore.JSDict(p) for p in project_list ]
 
     @interruptible
     def open_project(self,project_id):
