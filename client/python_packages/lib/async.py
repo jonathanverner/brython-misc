@@ -53,14 +53,16 @@ class Promise(EventMixin):
     def _finish(self,result,status=2):
         self._result = result
         self._status = status
-        if self._status == Promise.STATUS_FINISHED and self._success_handler:
-            logger.debug("Calling success handler with results:",self.result)
-            self._success_handler(self.result)
+        if self._status == Promise.STATUS_FINISHED:
+            if self._success_handler:
+                logger.debug("Calling success handler with results:",self.result)
+                self._success_handler(self.result)
             self.emit('success',self.result)
             self.unbind()
-        elif self._status == Promise.STATUS_ERROR and self._error_handler:
-            logger.debug("Calling error handler with error:", self.result)
-            self._error_handler(self.result)
+        elif self._status == Promise.STATUS_ERROR:
+            if self._error_handler:
+                logger.debug("Calling error handler with error:", self.result)
+                self._error_handler(self.result)
             self.emit('error',self.result)
             self.unbind()
 
