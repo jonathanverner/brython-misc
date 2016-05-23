@@ -165,10 +165,13 @@ def interruptible(f):
 
     return run
 
-def _generate_on_init(obj):
-    def _on_init():
-        obj.__initialized = True
-    return _on_init
+@decorator
+def interruptible_init(init):
+    def new_init(self,*args,**kwargs):
+        logger.debug("Calling decorated init for ", self.__class__.__name__)
+        self._init_promise = interruptible(init)(self,*args,**kwargs)
+        logger.debug("INIT PROMISE FOR",self.__class__.__name__,":",self._init_promise)
+    return new_init
 
 def defer(promise, f, *args, **kwargs):
     ret = Promise()
@@ -193,23 +196,27 @@ def defer(promise, f, *args, **kwargs):
 @decorator
 def _generate_guard(f):
     def guard(self,*args,**kwargs):
-        if self.__initialized:
-            f(self,*args,**kwargs)
+        if self._init_promise.status == Promise.STATUS_FINISHED:
+            return f(self,*args,**kwargs)
         else:
-            logger.warn("Calling method on Uninitialized object")
+            if hasattr(f,'__interruptible'):
+                logger.info("Defering method ",func_name(f)," until object is initialized.")
+                logger.debug("Waiting for promise:",self._init_promise)
+                return defer(self._init_promise, f, self, *args, **kwargs)
+            else:
+                logger.error("Calling method on Uninitialized object")
+                raise PromiseException("Calling method on Unitialized object")
+    return guard
 
-def async_init(cls):
-    if hasattr(cls.__init__,'__interruptible'):
-        def new_init(self,*args,**kwargs):
-            self.__initialized = False
-            promise = cls.__init__(self,*args,**kwargs)
-            promise.then(_generate_on_init(self))
 
+
+def async_class(cls):
     for m in dir(cls):
         if not m[0:2] == '__':
             meth = getattr(cls,m)
             if hasattr(meth,'__call__'):
                 setattr(cls,m,_generate_guard(meth))
+    return cls
 
 @interruptible
 def wget_urls(urls):
