@@ -11,8 +11,17 @@ try:
 except:
     sass = "sass --scss"
 
-sass_files = ["./client/sass/base.scss","./client/sass/widgets.scss"]
+sass_files = ["./client/sass/base.scss",
+              "./client/sass/widgets.scss",
+              "./client/bower_components/sass-bootstrap-glyphicons/scss/bootstrap-glyphicons.scss"]
 css_files = [""]
+assets = {
+    'glyphicon-fonts': {
+        'source':'./client/bower_components/sass-bootstrap-glyphicons/fonts/',
+        'target':'./client/assets/fonts/',
+        'pattern':'.*',
+    }
+}
 
 #def compile_js(src,dst=None):
     #if dst is not None:
@@ -35,6 +44,11 @@ def render_tpl(tpl,context,dst):
 
 
 @task
+def copy_assets():
+    for asset in assets.values():
+        cpR(asset['source'],asset['target'],pattern=asset['pattern'],create_parents=True)
+
+@task
 def stylesheets(target_dir='./client/assets/css'):
     css_stream = cat(css_files)
     for s in sass_files:
@@ -43,4 +57,5 @@ def stylesheets(target_dir='./client/assets/css'):
 
 @task
 def compile():
+    copy_assets()
     stylesheets()
