@@ -17,5 +17,5 @@ class ProgressBarComponent(ngcore.Component):
         }
 
 
-        def __init__(self):
-            super(ProgressBarComponent,self).__init__()
+    def __init__(self):
+        super(ProgressBarComponent,self).__init__()

@@ -10,5 +10,5 @@ class EditorTabsComponent(ngcore.Component):
         directives = []
 
 
-        def __init__(self):
-            super(EditorTabsComponent,self).__init__()
+    def __init__(self):
+        super(EditorTabsComponent,self).__init__()

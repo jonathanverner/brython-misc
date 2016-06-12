@@ -10,5 +10,5 @@ class MenuBarComponent(ngcore.Component):
         directives = []
 
 
-        def __init__(self):
-            super(MenuBarComponent,self).__init__()
+    def __init__(self):
+        super(MenuBarComponent,self).__init__()
