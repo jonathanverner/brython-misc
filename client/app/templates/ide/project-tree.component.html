@@ -8,10 +8,6 @@
 <ul>
     <li *ngFor="let project of services.projects.open_projects">
         <span>{{project.data.title}}</span>
-        <ul>
-            <li *ngFor="let f of project.files">
-              <span>F: {{ f }} </span>
-            </li>
-        </ul>
+        <widget-tree [model]="project.files" [title]="'name'" [icon]="'type'" ></widget-tree>
     </li>
 </ul>

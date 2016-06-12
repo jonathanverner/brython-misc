@@ -40,7 +40,26 @@ class Project:
         pass
 
     def query(self,pattern=""):
-        return ['test_file.txt','test_file.py']
+        return [
+            {
+                'name':'test_file.txt',
+                'type':'file'
+            },
+            {
+                'name':'test_file.py',
+                'type':'file'
+            },
+            {
+                'name':'test_dir',
+                'type':'dir',
+                'children':[
+                    {
+                        'name':'test_child.txt',
+                        'type':'file'
+                    }
+                ]
+            }
+        ]
 
     def add_user(self,user):
         self._users.add(user)
