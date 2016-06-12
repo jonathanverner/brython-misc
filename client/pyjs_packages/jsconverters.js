@@ -3,7 +3,7 @@ var $module=(function($B) {
         return function() {
             var args = Array.from(arguments);
             args.unshift(obj)
-            method.apply(this,args);
+            return method.apply(this,args);
         }
     }
     var defineProperty = function(obj,property) {
