@@ -40,6 +40,10 @@ def Output():
     ret.sub = sub
     return ret
 
+class directives:
+    class Self:
+        pass
+
 class Component:
     METADATA = ['selector','template','templateUrl','pipes','providers','styles','styleUrls','renderer']
     _component = None
@@ -90,7 +94,8 @@ def _get_js_annots(cls):
     return js_annots
 
 def component(cls):
-    jscls = JSDict(_get_js_annots(cls))
+    js_annots = _get_js_annots(cls)
+    jscls = JSDict(js_annots)
     attr_dict = {}
     if hasattr(cls,'ComponentData'):
         data = cls.ComponentData
@@ -104,6 +109,8 @@ def component(cls):
                     attr_dict['directives'].append(javascript.pyobj2jsobj(d._component))
                 elif type(d) == type(""):
                     attr_dict['directives'].append(jsimport(d))
+                elif issubclass(d,directives.Self):
+                    attr_dict['directives'].append(js_annots['constructor'])
                 else:
                     attr_dict['directives'].append(d)
 
