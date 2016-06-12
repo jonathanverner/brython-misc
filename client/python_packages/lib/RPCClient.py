@@ -168,29 +168,29 @@ class RPCClient:
         self._status = RPCClient.STATUS_CLOSED_SOCKET
 
     def _on_message(self,evt):
-        msg = json.loads(evt.data)
-        if msg['client_id'] is not None:
-            if not msg['client_id'] == self._client_id:
+        msg = ngcore.dict_to_obj(json.loads(evt.data))
+        if msg.client_id is not None:
+            if not msg.client_id == self._client_id:
                 return
         else:
-            if not msg['service'] == self._service_name or not msg['service'] == '__system__':
+            if not msg.service == self._service_name or not msg.service == '__system__':
                 return
         logger.debug("Processing message:", msg)
-        if msg['type'] == 'event':
-            handlers = self._event_handlers.get(msg['event'],[])
+        if msg.type == 'event':
+            handlers = self._event_handlers.get(msg.event,[])
             for handler in handlers:
-                handler(msg['data'])
-        elif msg['type'] == 'return':
-            result_promise = self._calls_in_progress[msg['call_id']]
-            del self._calls_in_progress[msg['call_id']]
-            logger.debug("Result:", msg['result'])
+                handler(msg.data)
+        elif msg.type == 'return':
+            result_promise = self._calls_in_progress[msg.call_id]
+            del self._calls_in_progress[msg.call_id]
+            logger.debug("Result:", msg.result)
             logger.debug("Finishing call:", result_promise)
-            result_promise._finish(msg['result'])
+            result_promise._finish(msg.result)
         elif msg['type'] == 'exception':
-            result_promise = self._calls_in_progress[msg['call_id']]
-            del self._calls_in_progress[msg['call_id']]
+            result_promise = self._calls_in_progress[msg.call_id]
+            del self._calls_in_progress[msg.call_id]
             logger.debug("Finishing call", result_promise)
-            result_promise._finish(msg['exception'],status=Promise.STATUS_ERROR)
+            result_promise._finish(msg.exception,status=Promise.STATUS_ERROR)
 
     def bind(self,event,handler):
         if event in self._event_handlers:

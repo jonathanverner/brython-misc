@@ -25,15 +25,13 @@ class UserService(Service):
         logger.debug("Initializing User Service")
         self.user = None
         self._rpc = yield RPCClientFactory.get_client('user')
-        user_data = yield self._rpc.get_profile()
-        self.user = User(self,user_data)
+        self.user = yield self._rpc.get_profile()
 
     @interruptible
     def login(self,username,password):
         try:
             logger.debug("Logging in with",username, password)
-            user_data = yield self._rpc.login(username,password)
-            self.user = User(user_data)
+            self.user = yield self._rpc.login(username,password)
             yield Return(True)
         except Exception as ex:
             logger.warn("Exception when logging in:", ex)

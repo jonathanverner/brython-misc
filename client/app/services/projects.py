@@ -12,7 +12,7 @@ class Project(EventMixin):
     def __init__(self,rpc,data):
         super(Project,self).__init__()
         self.rpc = rpc
-        self.data = JSDict(data["meta"])
+        self.data = data.meta
 
     @interruptible
     def _load_files(self,path=""):
@@ -49,8 +49,7 @@ class ProjectService(Service):
         self.open_projects = []
         self._rpc_project = yield RPCClientFactory.get_client('project')
         self._rpc_projectfs = yield RPCClientFactory.get_client('projectfs')
-        project_list = yield self._rpc_projectfs.query()
-        self.project_list = [ ngcore.JSDict(p) for p in project_list ]
+        self.project_list = yield self._rpc_projectfs.query()
 
     @interruptible
     def open_project(self,project_id):
