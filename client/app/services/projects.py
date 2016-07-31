@@ -34,7 +34,7 @@ class Project(EventMixin):
         return self.rpc.update_file(path,contents,project_id=self.data.project_id)
 
     def read_file(self,path):
-        return self.rpc.get_file(path,project_id=self.data.project_id)
+        return self.rpc.read_file(path,project_id=self.data.project_id)
 
     def query_files(self,path):
         return self.rpc.query(path,project_id=self.data.project_id)
@@ -61,13 +61,13 @@ class ProjectService(Service):
             project_data = yield self._rpc_project.open(project_id)
             project = Project(self._rpc_project,project_data)
             self.open_projects.append(project)
+            project.bind('closed',self._close_project)
             yield project._load_files()
             yield Return(project)
         except Exception as ex:
             logger.log("Exception when opening project:",ex)
             logger.exception(ex)
 
-    @interruptible
     def _close_project(self,event):
         proj = event.target
         self.open_projects.remove(proj)
