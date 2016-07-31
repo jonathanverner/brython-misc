@@ -14,6 +14,13 @@ class dct:
     def keys(self):
         return self.__keys
 
+    def __repr__(self):
+        lst = []
+        for k in self.__keys:
+            lst.append(repr(k)+":"+repr(getattr(self,k)))
+        return "{"+",".join(lst)+"}"
+        #return "{"+",".join([ "'"+k+"':'"+repr(getattr(self,k))+"'" for k in self.__keys])+"}"
+
 def dict_to_obj(data):
     if type(data) == dict:
         ret = dct()
