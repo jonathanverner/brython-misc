@@ -176,7 +176,6 @@ class RPCServer(WebSocketHandler):
         except Exception as ex:
             import traceback
             traceback.print_exc()
-            print("RESULT:",result)
             self.write_message(to_json({
                     'service':svc_name,
                     'type':'exception',

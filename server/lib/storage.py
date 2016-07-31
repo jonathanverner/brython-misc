@@ -39,7 +39,7 @@ class FileStore(DictStore):
     def __str__(self):
         return 'FileStore('+self.filename+')'
 
-    @run_on_executor()
+    @run_on_executor
     def get(self,collection,id):
         coll = self.collections.get(collection,None)
         if coll is not None:
@@ -48,13 +48,13 @@ class FileStore(DictStore):
         else:
             return None
 
-    @run_on_executor()
+    @run_on_executor
     def save(self,collection,obj):
         if collection not in self.collections:
             self.collections[collection] = {}
         self.collections[collection][obj['id']]=obj
 
-    @run_on_executor()
+    @run_on_executor
     def query(self,collection,query):
         result_set = []
         for (id,obj) in self.collections.get(collection,{}).items():
@@ -68,7 +68,7 @@ class FileStore(DictStore):
                 result_set.append(ret)
         return result_set
 
-    @run_on_executor()
+    @run_on_executor
     def persist(self):
         json.dump(open(self.filename,'w'),{'collections':self.collections})
 

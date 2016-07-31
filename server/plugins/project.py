@@ -150,22 +150,22 @@ class ProjectService(RPCService,AuthMixin):
     @export
     @project_opened
     def update_file(self, project, path, contents):
-        project.update_file(path,contents)
+        raise Return(project.update_file(path,contents))
 
     @export
     @project_opened
     def read_file(self, project, path):
-        project.read_file(path)
+        raise Return(project.read_file(path))
 
     @export
     @project_opened
     def mv(self, project, path_from, path_to):
-        project.mv(path_from,path_to)
+        raise Return(project.mv(path_from,path_to))
 
     @export
     @project_opened
     def rm(self, project, path_from, path_to):
-        project.mv(path_from,path_to)
+        raise Return(project.mv(path_from,path_to))
 
 
     @export

@@ -1,6 +1,5 @@
 import lib.angular.core as ngcore
 
-
 @ngcore.component
 class EditorTabsComponent(ngcore.Component):
 
