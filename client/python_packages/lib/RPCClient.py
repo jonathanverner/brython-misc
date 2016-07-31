@@ -186,10 +186,10 @@ class RPCClient:
             logger.debug("Result:", msg.result)
             logger.debug("Finishing call:", result_promise)
             result_promise._finish(msg.result)
-        elif msg['type'] == 'exception':
+        elif msg.type == 'exception':
             result_promise = self._calls_in_progress[msg.call_id]
             del self._calls_in_progress[msg.call_id]
-            logger.debug("Finishing call", result_promise)
+            logger.debug("Finishing call (exception)", result_promise)
             result_promise._finish(msg.exception,status=Promise.STATUS_ERROR)
 
     def bind(self,event,handler):
