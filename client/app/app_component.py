@@ -1,8 +1,7 @@
-from browser import console
-import javascript
 import lib.angular.core as ngcore
 from components.ide import EditorTabsComponent, MenuBarComponent, ProgressBarComponent, ProjectTreeComponent, StatusBarComponent
-from services import UserService
+from components.widgets import ConsoleComponent
+from services import UserService, ProjectService, ProgressService, StatusService
 
 
 
@@ -12,10 +11,13 @@ class AppComponent(ngcore.Component):
     class ComponentData:
         selector = 'ide-app'
         templateUrl = "app/templates/app.component.html"
-        directives = [EditorTabsComponent, MenuBarComponent, ProgressBarComponent, ProjectTreeComponent, StatusBarComponent]
+        directives = [EditorTabsComponent, MenuBarComponent, ProgressBarComponent, ProjectTreeComponent, StatusBarComponent, ConsoleComponent]
 
         services = {
-            'user':UserService
+            'user':UserService,
+            'project':ProjectService,
+            'progress':ProgressService,
+            'status':StatusService
         }
 
 

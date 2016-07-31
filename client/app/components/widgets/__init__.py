@@ -1,1 +1,2 @@
 from .tree_component import TreeComponent
+from .console_component import ConsoleComponent
