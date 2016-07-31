@@ -14,7 +14,7 @@ class Event:
         self.handled = False
 
     def retarget(self,tgt):
-        self.target.append(tgt)
+        self.targets.append(tgt)
 
     def rename(self,name):
         self.names.append(name)
@@ -32,20 +32,20 @@ class Event:
 class EventMixin:
 
     def __init__(self):
-        self._handlers = {}
+        self._event_handlers = {}
 
     def bind(self, event, handler, forward_event=None):
         if forward_event is not None and isinstance(handler,EventMixin):
             handler = generate_forward_handler(handler,forward_event)
-        if event not in self._handlers:
-            self._handlers[event] = []
-        self._handlers[event].append(handler)
+        if event not in self._event_handlers:
+            self._event_handlers[event] = []
+        self._event_handlers[event].append(handler)
 
     def unbind(self,event=None,handler=None):
         if event is None:
-            self._handlers = {}
+            self._event_handlers = {}
         else:
-            handlers = self._handlers.get(event,[])
+            handlers = self._event_handlers.get(event,[])
             if handler is None:
                 handlers.clear()
             else:
@@ -57,6 +57,6 @@ class EventMixin:
             event_data.rename(event)
         else:
             event_data = Event(event, self, event_data)
-        handlers = self._handlers.get(event,[])
+        handlers = self._event_handlers.get(event,[])
         for h in handlers:
             h(event_data)
