@@ -1,0 +1,3 @@
+settings = {
+    'gitolite_path':''
+}
