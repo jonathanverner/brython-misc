@@ -6,3 +6,4 @@ data/*
 .kdev4
 *__pycache__*
 virtual_env*
+.cache/
