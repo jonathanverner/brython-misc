@@ -74,7 +74,7 @@ class repo(object):
 
     def status(self):
         ret = []
-        for ln in self._git.status(porcelain=True).split('\n'):
+        for ln in self._git.status('-uall',porcelain=True).split('\n'):
             if ln == '':
                 continue
             match = repo._STATUS_LINE_A_RE.match(ln)
