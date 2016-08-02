@@ -1,6 +1,9 @@
-from fabric.api import task, local
+from fabric.api import task
 from management.venv import venv
-import subprocess,os
+from server.lib.settings import settings
+import subprocess, os
+
+conf = settings(__package__,strip_leading=1)
 
 @task
 def all():
@@ -16,8 +19,5 @@ def single(test):
 
 @task
 def cleanup():
-    subprocess.check_call(["sudo","rm", "-rf", "data/repos/git/repositories/test_repo.git"], cwd=os.getcwd())
-    subprocess.check_call(["sudo","rm", "-rf", "data/repos/git/repositories/test_repoA.git"], cwd=os.getcwd())
-    subprocess.check_call(["sudo","rm", "-rf", "data/repos/git/repositories/test_repoB.git"], cwd=os.getcwd())
-    subprocess.check_call(["sudo","rm", "-rf", "data/repos/git/repositories/test_repoC.git"], cwd=os.getcwd())
-    subprocess.check_call(["sudo","rm", "-rf", "data/repos/git/repositories/test_remote_repo.git"], cwd=os.getcwd())
+    for repo in conf.test_repos:
+        subprocess.check_call(["sudo","rm", "-rf", os.path.join(conf.repo_dir,repo)+".git"], cwd=os.getcwd())

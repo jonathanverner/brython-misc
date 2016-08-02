@@ -22,5 +22,14 @@ update_settings({
     'css_asset_dir':'./client/assets/css'
 },'client')
 
+update_settings({
+    'repo_dir':'data/repos/git/repositories',
+    'test_repos':['test_repo',
+                  'test_repoA',
+                  'test_repoB',
+                  'test_repoC',
+                  'test_remote_repo']
+},'server')
+
 from management import git, server, client
 
