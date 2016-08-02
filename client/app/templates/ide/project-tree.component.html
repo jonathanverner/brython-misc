@@ -8,6 +8,6 @@
 <ul>
     <li *ngFor="let project of services.projects.open_projects">
         <span>{{project.data.title}}</span>
-        <widget-tree [model]="project.files" [title]="'name'" [icon]="'type'" ></widget-tree>
+        <widget-tree [model]="project.workdir" [title]="'name'" [icon]="'type'" ></widget-tree>
     </li>
 </ul>

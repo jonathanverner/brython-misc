@@ -13,31 +13,30 @@ class Project(EventMixin):
         super(Project,self).__init__()
         self.rpc = rpc
         self.data = data.meta
+        self.workdir = {}
+        self._branch = self.data.branch
 
     @interruptible
-    def _load_files(self,path=""):
-        logger.log("Loading files")
-        self.files = yield self.query_files(path)
+    def _load_workdir(self):
+        logger.log("Loading workdir files")
+        self.workdir = yield self.query('WORKDIR:^(?!.git).*$',branch=self._branch)
 
     def close(self):
-        promise =  self.rpc.close_project(project_id=self.data.project_id)
+        promise =  self.rpc.close_project(project_id=self.data.project_id,branch=self._branch)
         promise.bind('success',self,'closed')
         return promise
 
-    def commit(self):
-        return self.rpc.commit_project(project_id=self.data.project_id)
+    def commit(self,message='Commit message'):
+        return self.rpc.commit(project_id=self.data.project_id,message=message,branch=self._branch)
 
-    def create_path(self, path):
-        return self.rpc.create_path(path,project_id=self.data.project_id)
+    def write(self,path,contents):
+        return self.rpc.write(path,contents,project_id=self.data.project_id,branch=self._branch)
 
-    def update_file(self,path,contents):
-        return self.rpc.update_file(path,contents,project_id=self.data.project_id)
+    def read(self,path,revision=None):
+        return self.rpc.read(path,revision=revision,project_id=self.data.project_id,branch=self._branch)
 
-    def read_file(self,path):
-        return self.rpc.read_file(path,project_id=self.data.project_id)
-
-    def query_files(self,path):
-        return self.rpc.query(path,project_id=self.data.project_id)
+    def query(self,pattern='WORKDIR:^(?!.git).*$'):
+        return self.rpc.query(pattern,project_id=self.data.project_id,branch=self._branch)
 
 @async_class
 class ProjectService(Service):
@@ -52,13 +51,13 @@ class ProjectService(Service):
         self.project_list = yield self._rpc_projectfs.query()
 
     @interruptible
-    def open_project(self,project_id):
+    def open_project(self,project_id,branch='master'):
         try:
             for p in self.open_projects:
-                if p.data.project_id == project_id:
-                    logger.info("Project already open:", p.data.title, "(id:",project_id,")")
+                if p.data.project_id == project_id and p.data.branch == branch:
+                    logger.info("Project already open:", p.data.title, "(id:",project_id,",branch:",branch,")")
                     yield Return(p)
-            project_data = yield self._rpc_project.open(project_id)
+            project_data = yield self._rpc_project.open(project_id,branch=branch)
             project = Project(self._rpc_project,project_data)
             self.open_projects.append(project)
             project.bind('closed',self._close_project)

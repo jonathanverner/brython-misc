@@ -22,5 +22,5 @@ class ProjectTreeComponent(ngcore.Component):
     def __init__(self):
         super(ProjectTreeComponent,self).__init__()
 
-    def open_project(self,project):
-        self.services.projects.open_project(project.project_id)
+    def open_project(self,project,branch='master'):
+        self.services.projects.open_project(project.project_id,branch=branch)
