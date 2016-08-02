@@ -2,9 +2,9 @@ import os, sys
 
 from fabric.api import task
 from management.shell import cpR, stream
-from server.lib.settings import SettingsFactory
 
-conf = SettingsFactory.get_settings(__package__,strip_leading=1)
+from server.lib.settings import settings
+conf = settings(__package__,strip_leading=1)
 
 
 from .stylesheets import build

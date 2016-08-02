@@ -19,7 +19,7 @@ from ..lib.shell import ls
 
 import os,re
 
-conf = settings('project')
+conf = settings(__package__)
 conf.default({
         'workdirs':'/tmp/wd',
         'gitolite_wd':'data/gitolite-admin',

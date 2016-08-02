@@ -2,8 +2,8 @@ from fabric.api import task, local
 from server.lib.gitolite import Gitolite
 import os
 
-from server.lib.settings import SettingsFactory
-conf = SettingsFactory.get_settings(__package__,strip_leading=1)
+from server.lib.settings import settings
+conf = settings(__package__,strip_leading=1)
 
 @task
 def list():

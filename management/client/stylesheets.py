@@ -1,9 +1,9 @@
 import os
 from fabric.api import task
 from management.shell import cat
-from server.lib.settings import settings, SettingsFactory
 
-conf = SettingsFactory.get_settings(__package__,strip_leading=1)
+from server.lib.settings import settings
+conf = settings(__package__,strip_leading=1)
 
 try:
     from scss import Scss
