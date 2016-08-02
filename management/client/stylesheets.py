@@ -10,12 +10,6 @@ try:
     sass = sass.compile
 except Exception as e:
     sass=os.path.join(os.path.dirname(__file__),"sass.sh")
-    #try:
-        #from scss import Scss
-        #sass = Scss().compile
-    #except:
-        #sass = "sass --scss"
-    sass=os.path.join(os.path.dirname(__file__),"sass.sh")
 
 @task
 def build(target_dir=conf.css_asset_dir):
