@@ -5,7 +5,9 @@ import subprocess
 import repos
 import users
 import groups
-from .settings import settings
+
+from server.lib.settings import SettingsFactory
+conf = SettingsFactory.get_settings(__package__,strip_leading=1)
 
 @task
 def run():
@@ -13,4 +15,4 @@ def run():
 
 @task
 def commit():
-    subprocess.check_call(["git", "commit", "-a", "-m", "Committing changes via fabric"], cwd=os.path.join(os.getcwd(),settings['gitolite_path']))
+    subprocess.check_call(["git", "commit", "-a", "-m", "Committing changes via fabric"], cwd=os.path.join(os.getcwd(),conf.gitolite_path))

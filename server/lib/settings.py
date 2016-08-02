@@ -5,6 +5,11 @@ default_settings = {
 
 }
 
+class SettingsFactory(object):
+    @classmethod
+    def get_settings(cls,package,strip_leading=0):
+        return settings('.'.join(package.split('.')[strip_leading:]))
+
 class settings(object):
     def __init__(self,scope):
         self._scope = scope
@@ -17,7 +22,7 @@ class settings(object):
 
     def __setattr__(self, name, value):
         if name == '_scope':
-            super().__setattr__(name,value)
+            super(settings,self).__setattr__(name,value)
         else:
             set_key(self._scope,name,value)
 

@@ -1,3 +1,0 @@
-settings = {
-    'gitolite_path':''
-}
