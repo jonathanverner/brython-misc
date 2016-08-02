@@ -13,11 +13,16 @@ update_settings({
             'source':'./client/bower_components/sass-bootstrap-glyphicons/fonts/',
             'target':'./client/assets/fonts/',
             'pattern':'.*',
+        },
+        'material-icons': {
+            'source':'./client/bower_components/mdi/fonts/',
+            'target':'./client/assets/fonts/',
+            'pattern':'.*',
         }
     },
     'sass_files': [ "./client/sass/base.scss",
                     "./client/sass/widgets.scss",
-                    "./client/bower_components/sass-bootstrap-glyphicons/scss/bootstrap-glyphicons.scss"],
+                    "./client/bower_components/mdi/scss/materialdesignicons.scss"],
     'css_files':[],
     'css_asset_dir':'./client/assets/css'
 },'client')

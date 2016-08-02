@@ -14,27 +14,25 @@ ul.w-tree {
      display:inline;
  }
  .w-icon {
-     font-family:'Glyphicons Halflings';
-     font-size:smaller;
+     font: normal normal normal 18px/1 "Material Design Icons";
+     vertical-align:middle;
  }
  .w-icon.file:before {
-     content:'\e43';
+     content: mdi('file');
  }
  .w-icon.dir:before {
-     content:'\e42';
+        content: mdi('folder');
  }
  .w-tree-indicator {
     cursor:pointer;
     display:inline-block;
-    font-family:'Glyphicons Halflings';
-    font-size:smaller;
+    font: normal normal normal 24px/1 "Material Design Icons";
+    vertical-align:middle;
   }
   .w-tree-indicator-open:before {
-      padding-right:0.5em;
-      content:"\e252"
+      content: mdi('menu-down');
   }
   .w-tree-indicator-closed:before {
-      padding-right:0.5em;
-      content:"\e072"
+      content: mdi('menu-right');
   }
 }
