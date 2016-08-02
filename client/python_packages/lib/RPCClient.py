@@ -13,12 +13,14 @@ class SocketFactory:
     def get_socket(cls, url, new = False):
         if url not in cls.SOCKETS:
             cls.SOCKETS[url] = websocket.WebSocket(url)
-            cls.SOCKETS[url].bind('close',cls._on_close)
+            cls.SOCKETS[url].bind('close',cls.close_handler(url))
         return cls.SOCKETS[url]
 
     @classmethod
-    def _on_close(cls,evt):
-        pass
+    def close_handler(cls,url):
+        def handler(evt):
+            del cls.SOCKETS[url]
+        return handler
 
 class RPCClientFactory:
     CLIENTS = {}
@@ -166,6 +168,7 @@ class RPCClient:
     def _on_close(self,evt):
         self._methods = []
         self._status = RPCClient.STATUS_CLOSED_SOCKET
+        self.__init__(self._url,self._service_name)
 
     def _on_message(self,evt):
         msg = ngcore.dict_to_obj(json.loads(evt.data))
