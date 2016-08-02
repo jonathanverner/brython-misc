@@ -11,7 +11,7 @@ def setup_function(f):
     mkdir('-p',tdir)
 
 def teardown_function(f):
-    rm('-rf',os.path.join(settings['temp_dir'],'mtest'))
+    rm('-rf',tdir)
 
 def test_ls():
     mkdir('-p',os.path.join(tdir,'a/b/c'))
