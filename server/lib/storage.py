@@ -34,7 +34,7 @@ class FileStore(DictStore):
             db = json.load(open(filename,'r'))
             self.collections = db['collections']
         else:
-            self.collections={}
+            self.collections={'maxid':0}
 
     def __str__(self):
         return 'FileStore('+self.filename+')'
@@ -47,6 +47,18 @@ class FileStore(DictStore):
             return ret
         else:
             return None
+
+    @run_on_executor
+    def create(self,collection):
+        obj = {}
+        obj['id']=self.collections['maxid']
+        self.collections['maxid']+=1
+        if collection not in self.collections:
+            self.collections[collection]={}
+        self.collections[collection][obj['id']]=obj
+        return obj
+
+
 
     @run_on_executor
     def save(self,collection,obj):
