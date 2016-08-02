@@ -12,7 +12,7 @@ def list():
 
 @task
 def freeze():
-    venv(['pip','freeze'])
+    venv(['pip','freeze','> requirements.txt'])
 
 @task
 def uninstall(package):

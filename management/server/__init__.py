@@ -1,5 +1,5 @@
 from fabric.api import task, local
-from management import venv
+from management.venv import venv
 
 import pip
 

@@ -31,7 +31,6 @@ log = logging.getLogger("App")
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler(sys.stderr))
 
-#plugins = ['infinote','project','user','chat','projectfs']
 plugins = ['chat','project','projectfs','user','admin']
 for p in plugins:
     log.info("Loading plugin: %s", p)

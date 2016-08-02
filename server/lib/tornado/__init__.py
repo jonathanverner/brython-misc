@@ -1,1 +1,1 @@
-from .RPCServer import RPCService, RPCServer, RPCException, export
+from .RPCServer import RPCSvcApi, RPCService, RPCServer, RPCException, export
