@@ -51,8 +51,8 @@ class repo(object):
     def pull(self):
         self._git.pull()
 
-    def push(self):
-        self._git.push()
+    def push(self,branch='master'):
+        self._git.push("origin", branch)
 
     # Methods for dealing with the index (staging area)
     def stage(self, path):
