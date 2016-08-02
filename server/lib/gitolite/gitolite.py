@@ -9,13 +9,16 @@ class Gitolite(object):
     GROUP_PATTERN=re.compile('^[a-zA-Z0-9][a-zA-Z0-9_.\-]*$')
     GROUP_LINE_PATTERN=re.compile('^\s*@(?P<group_name>[a-zA-Z0-9][a-zA-Z0-9_.\-]*)\s*=\s*(?P<users>[a-zA-Z0-9_.\- @]*)\s*#*.*$')
 
-    def __init__(self, path):
+    def __init__(self, path, url=None):
         self._admin_path=path
         self._actions=[]
         self._groups={}
         self._users=[]
         self._repos={}
-        subprocess.check_call(["git", "pull"], cwd=self._admin_path)
+        if url is not None and not os.path.isdir(self._admin_path):
+            subprocess.check_call(["git","clone","url",self._admin_path])
+        else:
+            subprocess.check_call(["git", "pull"], cwd=self._admin_path)
         self._load_users()
         self._load_groups()
         self._load_repos()
