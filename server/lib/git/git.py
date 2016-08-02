@@ -25,7 +25,10 @@ class repo(object):
         if not os.path.isdir(self._workdir):
             self._remote = clone_url
             if self._remote:
-                git.clone("--branch", branch, self._remote, self._workdir, bare=bare)
+                if branch is not None:
+                    git.clone("--branch", branch, self._remote, self._workdir, bare=bare)
+                else:
+                    git.clone(self._remote, self._workdir, bare=bare)
             else:
                 git.init(self._workdir,bare=bare)
         else:
