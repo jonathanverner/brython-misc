@@ -11,8 +11,11 @@ class SettingsFactory(object):
         return settings('.'.join(package.split('.')[strip_leading:]))
 
 class settings(object):
-    def __init__(self,scope):
-        self._scope = scope
+    def __init__(self,package,strip_leading=0):
+        if strip_leading > 0:
+            self._scope = '.'.join(package.split('.')[strip_leading:])
+        else:
+            self._scope = package
 
     def default(self, keys):
         update_default(self._scope,keys)
