@@ -19,13 +19,9 @@
         },
         "projects": {
             "3": {
-                "title":"Test project",
+                "title":"Gitolite Admin Repo",
                 "owner":"0",
-                "repo":"git@gandalf.temno.eu:~test",
-                "work_dir":"test",
-                "read_tokens":["heslo_read"],
-                "write_tokens":["heslo_write"],
-                "update_meta":["heslo_meta"]
+                "repo_url":"ssh://git@localhost:2222/gitolite-admin"
             }
 
         },
