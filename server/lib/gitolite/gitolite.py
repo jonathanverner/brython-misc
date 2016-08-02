@@ -16,7 +16,7 @@ class Gitolite(object):
         self._users=[]
         self._repos={}
         if url is not None and not os.path.isdir(self._admin_path):
-            subprocess.check_call(["git","clone","url",self._admin_path])
+            subprocess.check_call(["git","clone",url,self._admin_path])
         else:
             subprocess.check_call(["git", "pull"], cwd=self._admin_path)
         self._load_users()
