@@ -1,16 +1,31 @@
 from server.lib.git import repo
 from server.tests import settings
-import os,subprocess
+from server.tests.git_utils import create_test_repo, remove_test_repo
+import os,subprocess,random
+from sh import rm
 
 tmp = settings['temp_dir']
 
 def test_clone():
-    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/gitolite-admin')
+    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/test_remote_repo',branch=None)
     assert os.path.isdir(os.path.join(tmp,'test-repo'))
     assert os.path.isdir(os.path.join(tmp,'test-repo/.git'))
 
+def test_push():
+    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/test_remote_repo',branch=None)
+    readme=open(os.path.join(r._workdir,'README.md'),'w')
+    readme.write("This is a random readme:"+str(random.random()))
+    readme.close()
+    r.stage('README.md')
+    r.commit("Test commit")
+    r.push()
+    rm('-rf',r._workdir)
+    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/test_remote_repo',branch=None)
+    readme=open(os.path.join(r._workdir,'README.md'),'r').read()
+    assert readme.startswith('This is a random readme:')
+
 def test_clone_bare():
-    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/gitolite-admin',bare=True)
+    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/test_remote_repo',bare=True,branch=None)
     assert os.path.isdir(os.path.join(tmp,'test-repo'))
     assert os.path.isfile(os.path.join(tmp,'test-repo/config'))
 
@@ -20,9 +35,9 @@ def test_init_repo():
     assert os.path.isfile(os.path.join(tmp,'test-repo/.git/config'))
 
 def test_existing_repo():
-    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/gitolite-admin')
+    r = repo(tmp,'test-repo',clone_url='ssh://git@localhost:2222/test_remote_repo',branch=None)
     r2 = repo(tmp,'test-repo')
-    assert r2._remote == 'ssh://git@localhost:2222/gitolite-admin'
+    assert r2._remote == 'ssh://git@localhost:2222/test_remote_repo'
 
 def test_ls_repo():
     r = repo(tmp,'test-repo')
@@ -84,3 +99,9 @@ def test_read_repo():
 
 def teardown_function(function):
     subprocess.check_call(["rm", "-rf", "/tmp/test-repo"])
+
+def setup_module(module):
+    create_test_repo('test_remote_repo',empty=True)
+
+def teardown_module(module):
+    remove_test_repo('test_remote_repo')
