@@ -7,8 +7,14 @@
                 <span class='widget w-title'> {{ child[title] }} </span>
             </div>
         </div>
-        <div *ngIf="child[children] && opened(child)">
-            <widget-tree [icon]="icon" [title]='title' [indent]="indent" [children]="children" [model]="child[children]" [depth]="depth+1"></widget-tree>
+        <div *ngIf="child[children_attr] && opened(child)">
+            <widget-tree [icon]="icon"
+                         [title]='title'
+                         [indent]="indent"
+                         [children_attr]="children_attr"
+                         [model]="child[children_attr]"
+                         [depth]="depth+1">
+            </widget-tree>
         </div>
     </li>
 </ul>

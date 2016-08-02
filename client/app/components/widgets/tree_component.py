@@ -15,7 +15,7 @@ class TreeComponent(ngcore.Component):
         class Inputs:
             depth = 0
             model = None
-            children = 'children'
+            children_attr = 'children'
             icon = 'icon'
             title = 'title'
             indent = 2
@@ -55,7 +55,7 @@ class TreeComponent(ngcore.Component):
 
 
     def is_leaf(self,ch):
-        return getattr(ch,self.children,None) is None
+        return getattr(ch,self.children_attr,None) is None
 
     def has_children(self,ch):
         return not self.is_leaf(ch)

@@ -115,6 +115,15 @@ class Project(object):
                 cur_dir['children'][items[-1]]=cls._create_node('file',items[-1])
         return root
 
+    @classmethod
+    def tree_dict_to_list(cls,root):
+        """ Converts children dicts to arrays """
+        return {
+            'type':root['type'],
+            'name':root['name'],
+            'children':sorted([ cls.tree_dict_to_list(child) for (name,child) in root['children'].items()],key=lambda x:x['name'])
+        }
+
 
     def __init__(self, meta_data, branch='master'):
         self.io_loop = ioloop.IOLoop.current()
@@ -126,6 +135,9 @@ class Project(object):
         self._full_id = ProjectFactory._full_id(self.meta['id'],branch)
         self._repo = repo(os.path.join(conf.workdirs,self._id),self.branch,clone_url=self.meta['repo_url'],branch=self.branch)
         self._wd = os.path.join(conf.workdirs,self._id,self.branch)
+
+    def __json__(self):
+        return {'meta':self.meta,'branch':self.branch,'users':list(self._users)}
 
     def __repr__(self):
         return "Project("+self.full_id()+"):"+str(self.meta)+", wd:"+self._wd
@@ -235,7 +247,7 @@ class ProjectService(RPCService,AuthMixin):
 
     @export
     def open(self, project_id, branch='master'):
-        project = self.factory.open_project(project_id,branch,self._api.session.user)
+        project = yield self.factory.open_project(project_id,branch,self._api.session.user)
         raise Return(project)
 
     @export
@@ -289,6 +301,7 @@ class ProjectService(RPCService,AuthMixin):
     @export
     @project_opened
     def query(self, project, pattern="WORKDIR:^(?!.git).*$"):
-        raise Return(project.query(pattern = pattern))
+        result = yield  project.query(pattern = pattern)
+        raise Return(Project.tree_dict_to_list(result))
 
 services = [ProjectService]

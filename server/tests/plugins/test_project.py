@@ -28,6 +28,24 @@ def teardown_module(module):
     remove_test_repos()
     rm('-rf',wds)
 
+def test_tree_dict_to_list():
+    dict_tree = { 'name':'/', 'type':'dir', 'children':{
+        'a':{'name':'a','type':'file','children':{}},
+        'b':{'name':'b','type':'dir','children': {
+            'c':{'name':'c','type':'file','children':{}},
+            'd':{'name':'d','type':'dir','children':{}}
+            }}
+        }
+    }
+    list_tree = { 'name':'/', 'type':'dir', 'children':[
+        {'name':'a','type':'file','children':[]},
+        {'name':'b','type':'dir','children':
+                 [{'name':'c','type':'file','children':[]},{'name':'d','type':'dir','children':[]}]}]
+    }
+    lst= Project.tree_dict_to_list(dict_tree)
+    assert lst==list_tree
+
+
 def test_build_tree():
     tree = Project._build_tree(['/a/','/b/','/a/b/','/a/b/c/','/d/e','/c'])
     assert tree == {'name':'/','type':'dir',
