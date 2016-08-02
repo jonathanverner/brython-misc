@@ -69,8 +69,21 @@ class repo(object):
         """equivalent of git mv @origin @dest """
         self._git("mv",origin, dest)
 
-    def rm(self,path):
-        self._git("rm",path)
+    def rm(self,path,force=True):
+        """
+            Deletes a file in the working directory and stages the change.
+            If force is false and the file has uncommitted changes, it
+            will throw an exception.
+
+            Note: Unlike git rm, it WILL delete the file EVEN IF it is not
+            present in the staging area or HEAD.
+        """
+        if force:
+            self._git("rm",'-f','--ignore-unmatch',path)
+        else:
+            self._git("rm",'--ignore-unmatch',path)
+        if os.path.isfile(os.path.join(self._workdir,path)):
+            os.remove(os.path.join(self._workdir,path))
 
     def status(self):
         ret = []
