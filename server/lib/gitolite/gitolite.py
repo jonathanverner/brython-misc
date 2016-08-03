@@ -31,13 +31,14 @@ class Gitolite(object):
                 self._users.append(match.group('user_name'))
 
     def _load_groups(self):
-        if not os.path.isfile(os.path.join(self._admin_path,'conf/groups.conf')):
-            raise Exception("Missing conf/groups.conf")
-        conf = open(os.path.join(self._admin_path,'conf/groups.conf'),'r').read()
-        for ln in conf.split('\n'):
-            match = Gitolite.GROUP_LINE_PATTERN.match(ln)
-            if match:
-                self._groups[match.group('group_name')] = match.group('users').split(' ')
+        if os.path.isfile(os.path.join(self._admin_path,'conf/groups.conf')):
+            conf = open(os.path.join(self._admin_path,'conf/groups.conf'),'r').read()
+            for ln in conf.split('\n'):
+                match = Gitolite.GROUP_LINE_PATTERN.match(ln)
+                if match:
+                    self._groups[match.group('group_name')] = match.group('users').split(' ')
+        else:
+            print("groups.conf does not exist, will create one on save")
 
     def _save_groups(self):
         conf = open(os.path.join(self._admin_path,'conf/groups.conf'),'w')

@@ -4,7 +4,9 @@
 from server.lib.settings import update_settings
 
 update_settings({
-    'gitolite_path':'./data/gitolite-admin/'
+    'gitolite_path':'./data/gitolite-admin/',
+    'public_key_file':'/home/jonathan/.ssh/id_rsa.pub',
+    'gitolite_admin':'admin'
 },'git')
 
 update_settings({
