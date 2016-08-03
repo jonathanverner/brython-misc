@@ -18,7 +18,7 @@ class TreeComponent(ngcore.Component):
             children_attr = 'children'
             icon = 'icon'
             title = 'title'
-            indent = 2
+            indent = 1
 
         class Outputs:
             click = ngcore.Output()
