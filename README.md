@@ -1,3 +1,7 @@
+# Setup
+  --  install `sudo apt-get install python3-dev`
+  --  create virtualenv `fab server.pip.mkenv`
+
 # Virtualenv
 
   --  Activate virtual_env `. venv.sh`

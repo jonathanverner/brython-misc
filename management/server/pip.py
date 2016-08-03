@@ -17,3 +17,8 @@ def freeze():
 @task
 def uninstall(package):
     venv(['pip','uninstall',package])
+
+@task
+def mkenv():
+    local("virtualenv -p /usr/bin/python3.4 virtual_env")
+    venv(['pip','install','-r','requirements.txt'])
