@@ -55,7 +55,7 @@ class TreeComponent(ngcore.Component):
 
 
     def is_leaf(self,ch):
-        return getattr(ch,self.children_attr,None) is None
+        return getattr(ch,self.children_attr,[]) == []
 
     def has_children(self,ch):
         return not self.is_leaf(ch)
