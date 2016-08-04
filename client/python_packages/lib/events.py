@@ -1,6 +1,3 @@
-from lib.logger import Logger
-logger = Logger(__name__)
-
 def generate_forward_handler(obj,forward_event):
     def handler(ev):
         obj.emit(forward_event,ev,_forwarded=True)
