@@ -292,7 +292,7 @@ class IdentNode(ExpNode):
     def _change_handler(self,event):
         data = event.data
         if data['key'] == self.name():
-            self.emit('exp_change')
+            self.emit('exp_change',{'source_id':event.eventid})
 
 class VarNode(IdentNode):
     """ Node representing an identifier or one of the predefined constants True, False, None"""

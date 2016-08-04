@@ -23,3 +23,11 @@ def test_obj_observer():
     assert obs.have_value() == True
     assert obs.value() == 0
 
+    ctx.x = 1
+    data =  t.events.pop().data
+    assert data['new'] == -0.5
+    assert data['old'] == 0
+    assert obs.have_value() == True
+    assert obs.value() == -0.5
+
+

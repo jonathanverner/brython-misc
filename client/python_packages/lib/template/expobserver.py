@@ -11,11 +11,17 @@ class ExpObserver(EventMixin):
         self.ast.bind('exp_change',self._change_chandler)
         self.ast.watch(context)
         self.evaluate()
+        self._last_event_id = -1
 
     def _change_chandler(self,event):
+        if event.data['source_id'] == self._last_event_id:
+            return
+        else:
+            self._last_event_id = event.data['source_id']
         event_data = {
             'exp':self._exp_src,
-            'observer':self
+            'observer':self,
+            'source_id':event.data['source_id']
         }
         if self._have_val:
             event_data['old']=self._val
