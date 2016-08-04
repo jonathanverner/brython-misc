@@ -1,6 +1,6 @@
-from lib.events import EventMixin
+from .observer import ListProxy, DictProxy
 
-class Context(object,EventMixin):
+class Context(object):
     """ Class used for looking up identifiers when evaluating an expression. """
     def __init__(self, dct={}):
         self._dct = dct
@@ -16,13 +16,23 @@ class Context(object,EventMixin):
         if attr.startswith('_'):
             super().__setattr__(attr,val)
         else:
-            self._dct[attr]=val
+            if type(val) == list:
+                self._dct[attr]=ListProxy(val)
+            elif type(val) == dict:
+                self._dct[attr]=DictProxy(val)
+            else:
+                self._dct[attr]=val
 
     def _get(self, name):
         return self._dct[name]
 
     def _set(self,name,val):
-        self._dct[name]=val
+        if type(val) == list:
+            self._dct[name]=ListProxy(val)
+        elif type(val) == dict:
+            self._dct[name]=DictProxy(val)
+        else:
+            self._dct[name]=val
 
     def _save(self, name):
         """ If the identifier @name is present, saves its value on
