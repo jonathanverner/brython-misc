@@ -3,7 +3,7 @@ logger = Logger(__name__)
 
 def generate_forward_handler(obj,forward_event):
     def handler(ev):
-        obj.emit(forward_event,ev)
+        obj.emit(forward_event,ev,_forwarded=True)
     return handler
 
 class Event:
@@ -52,7 +52,7 @@ class EventMixin:
                 handlers.remove(handler)
 
     def emit(self, event, event_data):
-        if isinstance(event_data, Event):
+        if _forwarded and isinstance(event_data, Event):
             event_data.retarget(self)
             event_data.rename(event)
         else:
