@@ -223,6 +223,8 @@ def tokenize(expr):
 class ExpNode(object):
     """ Base class for nodes in the AST tree """
 
+    def __init__(self):
+        super().__init__()
     def evaluate(self,context):
         """ Evaluates the node looking up identifiers in @context."""
         pass
@@ -230,7 +232,11 @@ class ExpNode(object):
 class ConstNode(ExpNode):
     """ Node representing a string or number constant """
     def __init__(self,val):
+        super().__init__()
         self._last_val = val
+
+    def name(self):
+        return self._last_val
 
     def evaluate(self,context):
         return self._last_val
@@ -251,6 +257,13 @@ class IdentNode(ExpNode):
 
             This includes VarNode, FuncNode and AttrAccessNode.
     """
+    def __init__(self,ident):
+        super().__init__()
+        self._ident=ident
+
+    def name(self):
+        return self._ident
+
     def evaluate(self, context, self_obj=None):
         pass
 
@@ -263,20 +276,17 @@ class VarNode(IdentNode):
         'None':None
     }
     def __init__(self,identifier):
-        self._ident = identifier
+        super().__init__(identifier)
         if self._ident in VarNode.CONSTANTS:
             self._const = True
             self._last_val = VarNode.CONSTANTS[self._ident]
         else:
             self._const = False
 
-    def name(self):
-        return self._ident
-
     def evaluate(self,context,self_obj=None):
         if self_obj is None:
             if not self._const:
-                self._last_val = context._get(self._ident)
+                self._last_val = context._get(self.name())
         else:
             return getattr(self_obj,self.name())
         return self._last_val
@@ -288,12 +298,9 @@ class VarNode(IdentNode):
 class FuncNode(IdentNode):
     """ Node representing a function call. """
     def __init__(self, identifier, args, kwargs):
-        self._ident = identifier
+        super().__init__(identifier)
         self._args = args
         self._kwargs = kwargs
-
-    def name(self):
-        return self._ident
 
     def evaluate(self, context, self_obj=None):
         if self_obj is None:
@@ -316,6 +323,7 @@ class FuncNode(IdentNode):
 class ListAccessNode(IdentNode):
     """ Node representing an array slice, e.g. lst[10:15] (also includes lst[1]) """
     def __init__(self,identifier,slice,start,end,step):
+        super().__init__(identifier)
         self._ident = identifier
         self._start = start
         self._end = end
@@ -346,6 +354,7 @@ class ListAccessNode(IdentNode):
 class AttrAccessNode(IdentNode):
     """ Node representing attribute access, e.g. obj.prop """
     def __init__(self, obj, attribute):
+        super().__init__(obj.name())
         self._obj = obj
         self._attr = attribute
 
@@ -370,6 +379,7 @@ class AttrAccessNode(IdentNode):
 class ListComprNode(ExpNode):
     """ Node representing comprehension, e.g. [ x+10 for x in lst if x//2 == 0 ] """
     def __init__(self,expr, var, lst, cond):
+        super().__init__()
         self._expr = expr
         self._var = var
         self._lst = lst
@@ -399,6 +409,7 @@ class ListComprNode(ExpNode):
 class ListNode(ExpNode):
     """ Node representing a list constant, e.g. [1,2,"ahoj",3,None] """
     def __init__(self,lst):
+        super().__init__()
         self._lst = lst
 
     def evaluate(self,context):
@@ -437,6 +448,7 @@ class OpNode(ExpNode):
     }
 
     def __init__(self,operator,l_exp,r_exp):
+        super().__init__()
         self._opstr = operator
         self._op = OpNode.OPS[operator]
         self._larg = l_exp
