@@ -19,6 +19,9 @@
 
 import re
 
+from lib.events import EventMixin
+from .observer import observe
+
 T_SPACE = 0
 T_NUMBER = 1            # A number immediately preceded by '-' is a negative number, the '-' is not taken as an operator, so 10-11 is not a valid expression
 T_LBRACKET = 2
@@ -220,13 +223,25 @@ def tokenize(expr):
             yield (tokentype,expr[pos],pos+1)
             pos = pos+1
 
-class ExpNode(object):
+class ExpNode(EventMixin):
     """ Base class for nodes in the AST tree """
 
     def __init__(self):
         super().__init__()
+        self.bind('change',self._change_handler)
+
     def evaluate(self,context):
         """ Evaluates the node looking up identifiers in @context."""
+        pass
+
+    def watch(self,ctx):
+        """
+            Watches ctx for changes which have effect on the expression value
+            and emits events when expression changes
+        """
+        pass
+
+    def _change_handler(self,event):
         pass
 
 class ConstNode(ExpNode):
@@ -267,6 +282,17 @@ class IdentNode(ExpNode):
     def evaluate(self, context, self_obj=None):
         pass
 
+    def watch(self,context,self_obj=None):
+        self.stop_forwarding(event='change')
+        if self_obj is None:
+            observe(context,observer=self)
+        else:
+            observe(self_obj,observer=self)
+
+    def _change_handler(self,event):
+        data = event.data
+        if data['key'] == self.name():
+            self.emit('exp_change')
 
 class VarNode(IdentNode):
     """ Node representing an identifier or one of the predefined constants True, False, None"""
@@ -301,6 +327,10 @@ class FuncNode(IdentNode):
         super().__init__(identifier)
         self._args = args
         self._kwargs = kwargs
+        for a in self._args:
+            a.bind('exp_change',self,'exp_change')
+        for (k,v) in self._kwargs:
+            v.bind('exp_change',self,'exp_change')
 
     def evaluate(self, context, self_obj=None):
         if self_obj is None:
@@ -316,6 +346,13 @@ class FuncNode(IdentNode):
         self._last_val = func(*args,**kwargs)
         return self._last_val
 
+    def watch(self,context,self_obj=None):
+        super().watch(context,self_obj)
+        for a in self._args:
+            a.watch(context)
+        for (k,v) in self._kwargs:
+            v.watch(context)
+
     def __repr__(self):
         return str(self.name())+'('+','.join([repr(a) for a in self._args])+','.join([repr(k)+'='+repr(v) for (k,v) in self._kwargs.items()])+')'
 
@@ -329,6 +366,12 @@ class ListAccessNode(IdentNode):
         self._end = end
         self._step = step
         self._slice = slice
+        if self._start is not None:
+            self._start.bind('exp_change',self,'exp_change')
+        if self._end is not None:
+            self._end.bind('exp_change',self,'exp_change')
+        if self._step is not None:
+            self._step.bind('exp_change',self,'exp_change')
 
     def evaluate(self, context, self_obj = None):
         start,end,step = self._start,self._end,self._step
@@ -342,8 +385,14 @@ class ListAccessNode(IdentNode):
             sl = slice(start, end, step)
         else:
             sl = start
-        self._last_val = self._ident.evaluate(context,self_obj=None)[sl]
+        self._last_val = self._ident.evaluate(context,self_obj=self_obj)[sl]
         return self._last_val
+
+    def watch(self,context,self_obj):
+        self._start.watch(context)
+        self._end.watch(context)
+        self._step.watch(context)
+
 
     def __repr__(self):
         if self._slice:
@@ -357,20 +406,29 @@ class AttrAccessNode(IdentNode):
         super().__init__(obj.name())
         self._obj = obj
         self._attr = attribute
+        self._obj.bind('exp_change',self,'exp_change')
+        self._attr.bind('exp_change',self,'exp_change')
 
     def name(self):
         return self._obj.name()
 
-    def evaluate(self,context, self_obj = None):
+    def _get_obj(self, context, self_obj = None):
         if self_obj is None:
-            obj = self._obj.evaluate(context)
+            return self._obj.evaluate(context)
         else:
             if isinstance(self._obj,VarNode):
-                obj = getattr(self_obj,self._obj.name())
+                return getattr(self_obj,self._obj.name())
             else:
-                obj = self._obj.evaluate(context,self_obj=self_obj)
-        self._last_val = self._attr.evaluate(context,self_obj=obj)
+                return self._obj.evaluate(context,self_obj=self_obj)
+
+    def evaluate(self,context, self_obj = None):
+        self._last_val = self._attr.evaluate(context,self_obj=self._get_obj(context,self_obj=self_obj))
         return self._last_val
+
+    def watch(self,context,self_obj = None):
+        obj = self._get_obj(context, self_obj=self_obj)
+        self._obj.watch(context,self_obj=self_obj)
+        self._attr.watch(context,self_obj = obj)
 
     def __repr__(self):
         return repr(self._obj)+'.'+repr(self._attr)
@@ -384,6 +442,10 @@ class ListComprNode(ExpNode):
         self._var = var
         self._lst = lst
         self._cond = cond
+        self._expr.bind('exp_change',self,'exp_change')
+        self._lst.bind('exp_change',self,'exp_change')
+        if self._cond is not None:
+            self._cond.bind('exp_change',self,'exp_change')
 
     def evaluate(self,context):
         lst = self._lst.evaluate(context)
@@ -399,6 +461,11 @@ class ListComprNode(ExpNode):
         self._last_val = ret
         return self._last_val
 
+    def watch(self,context):
+        self._lst.watch(context)
+        self._cond.watch(context)
+        self._expr.watch(context)
+
     def __repr__(self):
         if self._cond is None:
             return '['+repr(self._expr)+' for '+repr(self._var)+' in ' + repr(self._lst) + ']'
@@ -411,6 +478,8 @@ class ListNode(ExpNode):
     def __init__(self,lst):
         super().__init__()
         self._lst = lst
+        for e in self._lst:
+            e.bind('exp_change',self,'exp_change')
 
     def evaluate(self,context):
         ret = []
@@ -418,6 +487,10 @@ class ListNode(ExpNode):
             ret.append(e.evaluate(context))
         self._last_val = ret
         return self._last_val
+
+    def watch(self,context):
+        for e in self._lst:
+            e.watch(context)
 
     def __repr__(self):
         return repr(self._lst)
@@ -453,6 +526,8 @@ class OpNode(ExpNode):
         self._op = OpNode.OPS[operator]
         self._larg = l_exp
         self._rarg = r_exp
+        l_exp.bind('exp_change',self,'exp_change')
+        r_exp.bind('exp_change',self,'exp_change')
 
     def evaluate(self,context):
         if self._opstr == 'not':
@@ -462,6 +537,10 @@ class OpNode(ExpNode):
             r = self._rarg.evaluate(context)
             self._last_val = self._op(l,r)
         return self._last_val
+
+    def watch(self,context):
+        self._larg.watch(context)
+        self._rarg.watch(context)
 
     def __repr__(self):
         if self._opstr == 'not':
