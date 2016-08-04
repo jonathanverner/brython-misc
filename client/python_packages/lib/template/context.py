@@ -13,7 +13,7 @@ class Context(object,EventMixin):
             super().__getattribute__(attr)
 
     def __setattr__(self,attr,val):
-        if attr == '_dct' or attr == '_saved':
+        if attr.startswith('_'):
             super().__setattr__(attr,val)
         else:
             self._dct[attr]=val
