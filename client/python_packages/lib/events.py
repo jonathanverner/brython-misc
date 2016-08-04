@@ -34,6 +34,7 @@ class EventMixin:
 
     def __init__(self):
         self._event_handlers = {}
+        self._forwarding_from_objects = []
 
     def bind(self, event, handler, forward_event=None):
         """
@@ -43,21 +44,43 @@ class EventMixin:
            emits the event @event.
         """
         if forward_event is not None and isinstance(handler,EventMixin):
-            handler = generate_forward_handler(handler,forward_event)
+            h = generate_forward_handler(handler,forward_event)
+            handler._forwarding_from_objects.append((self,h,event))
+            handler = h
+
         if event not in self._event_handlers:
             self._event_handlers[event] = []
         self._event_handlers[event].append(handler)
 
+    def stop_forwarding(self,event = None):
+        """
+           Stops forwarding all events
+        """
+        retain = []
+        for (obj,h,e) in self._forwarding_from_objects:
+            if event is None or e == event:
+                obj.unbind(e,h)
+            else:
+                retain.append((obj,h,e))
+        self._forwarding_from_objects = retain
+
+
     def unbind(self,event=None,handler=None):
         """
-           Unregisters event handlers. If @event is None, unregisters
-           ALL handlers for all events. If @event is provided but
-           @handler is None, unregisters all handlers for event @event.
-           Otherwise unregisters only the specified @handler from the
-           event @event.
+           Unregisters event handlers.
+
+           If @event is None, unregisters ALL handlers for all events.
+
+           If @event is provided and not an EventMixin but @handler is None,
+           unregisters all handlers for event @event.
+
+           Otherwise unregisters only the specified @handler from the event @event.
         """
         if event is None:
             self._event_handlers = {}
+            for (obj,h,event) in self._forwarding_from_objects:
+                obj.unbind(event,h)
+            self._forwarding_from_objects = []
         else:
             handlers = self._event_handlers.get(event,[])
             if handler is None:
