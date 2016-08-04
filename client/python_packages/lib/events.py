@@ -4,7 +4,7 @@ def generate_forward_handler(obj,forward_event):
     return handler
 
 class Event:
-    def __init__(self, name, target, data):
+    def __init__(self, name, target, data=None):
         self.targets = [target]
         self.names = [name]
         self.data = data
@@ -65,7 +65,7 @@ class EventMixin:
             else:
                 handlers.remove(handler)
 
-    def emit(self, event, event_data,_forwarded=False):
+    def emit(self, event, event_data=None,_forwarded=False):
         """
             Emits an envent on the object, calling all event handlers. Each
             event handler will be passed an object of type Event whose
