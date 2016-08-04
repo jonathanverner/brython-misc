@@ -4,11 +4,17 @@ def generate_forward_handler(obj,forward_event):
     return handler
 
 class Event:
+    _lastid=0
     def __init__(self, name, target, data=None):
         self.targets = [target]
         self.names = [name]
         self.data = data
         self.handled = False
+        self.eventid = Event._lastid
+        Event._lastid += 1
+        if Event._lastid > 2**31:
+            Event._lastid = 0
+
 
     def retarget(self,tgt):
         self.targets.append(tgt)
