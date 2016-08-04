@@ -8,13 +8,13 @@ conf = settings(__package__,strip_leading=1)
 @task
 def all():
     cleanup()
-    venv(['python','-m', 'pytest', '--pdb','server'])
+    venv(['python','-m', 'pytest', 'server/tests'])
     cleanup()
 
 @task
 def single(test):
     cleanup()
-    venv(['python','-m', 'pytest', '--pdb',test])
+    venv(['python','-m', 'pytest', '--pdb','--full-trace', '--maxfail=1',os.path.join('server/tests',test)])
     cleanup()
 
 @task
