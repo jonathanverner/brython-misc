@@ -20,6 +20,7 @@ class ObjMixin(object):
     def __setattr__(self, name, value):
         if not name.startswith('_'):
             change_event = {
+                'observed_obj':self,
                 'type':'__setattr__',
                 'key':name,
                 'value':value,
@@ -41,6 +42,7 @@ class ArrayMixin(object):
     def __setattr__(self, name, value):
         if not name.startswith('_'):
             change_event = {
+                'observed_obj':self,
                 'type':'__setattr__',
                 'key':name,
                 'value':value
