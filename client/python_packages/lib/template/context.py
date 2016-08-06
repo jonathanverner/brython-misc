@@ -23,6 +23,13 @@ class Context(object):
             else:
                 self._dct[attr]=val
 
+    def __delattr__(self,attr):
+        if attr.startswith('_'):
+            super().__delattr__(attr)
+        else:
+            del self._dct[attr]
+
+
     def _get(self, name):
         return self._dct[name]
 
@@ -33,6 +40,9 @@ class Context(object):
             self._dct[name]=DictProxy(val)
         else:
             self._dct[name]=val
+
+    def _clear(self):
+        self._dct.clear()
 
     def _save(self, name):
         """ If the identifier @name is present, saves its value on
