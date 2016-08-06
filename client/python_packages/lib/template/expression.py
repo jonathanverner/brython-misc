@@ -62,7 +62,7 @@ match_token_res = [
     (T_IDENTIFIER,re.compile('[a-z_$].*',re.IGNORECASE)),
 ]
 OP_PRIORITY = {
-    '(':-1,    # Parenthesis have lowest priority so that we always stop partial evaluation when
+    '(':-2,    # Parenthesis have lowest priority so that we always stop partial evaluation when
                # reaching a parenthesis
     '==':0,
     'and':0,
@@ -412,22 +412,18 @@ class AttrAccessNode(IdentNode):
     def name(self):
         return self._obj.name()
 
-    def _get_obj(self, context, self_obj = None):
-        if self_obj is None:
-            return self._obj.evaluate(context)
-        else:
-            if isinstance(self._obj,VarNode):
-                return getattr(self_obj,self._obj.name())
-            else:
-                return self._obj.evaluate(context,self_obj=self_obj)
-
-    def evaluate(self,context, self_obj = None):
-        self._last_val = self._attr.evaluate(context,self_obj=self._get_obj(context,self_obj=self_obj))
+    def evaluate(self,context,self_obj=None):
+        """
+           Note that this function expects the AST of the attr access to
+           be rooted at the rightmost element of the attr access chain !!
+        """
+        obj = self._obj.evaluate(context)
+        self._last_val = self._attr.evaluate(context,self_obj=obj)
         return self._last_val
 
-    def watch(self,context,self_obj = None):
-        obj = self._get_obj(context, self_obj=self_obj)
-        self._obj.watch(context,self_obj=self_obj)
+    def watch(self,context):
+        obj = self._obj.evaluate(context)
+        self._obj.watch(context)
         self._attr.watch(context,self_obj = obj)
 
     def __repr__(self):
@@ -553,7 +549,7 @@ def partial_eval(arg_stack,op_stack,pri=-1):
     """ Partially evaluates the stack, i.e. while the operators in @op_stack have strictly
         higher priority then @pri, they are converted to OpNodes/AttrAccessNodes with
         arguments taken from the @arg_stack. The result is always placed back on the @arg_stack"""
-    while len(op_stack) > 0 and pri < OP_PRIORITY[op_stack[-1][1]]:
+    while len(op_stack) > 0 and pri <= OP_PRIORITY[op_stack[-1][1]]:
         token,op = op_stack.pop()
         ar = arg_stack.pop()
         if op == 'not':
