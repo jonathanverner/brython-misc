@@ -24,7 +24,6 @@ class ObjMixin(object):
                 'type':'__setattr__',
                 'key':name,
                 'value':value,
-                'observed_obj':self,
             }
             if hasattr(self,name):
                 change_event['old'] = getattr(self,name)
@@ -32,6 +31,20 @@ class ObjMixin(object):
             self._obs____.emit('change',change_event)
         else:
             super().__setattr__(name,value)
+
+    def __delattr__(self, name):
+        if not name.startswith('_'):
+            change_event = {
+                'observed_obj':self,
+                'type':'__delattr__',
+                'key':name
+            }
+            if hasattr(self,name):
+                change_event['old'] = getattr(self,name)
+            super().__delattr__(name)
+            self._obs____.emit('change',change_event)
+        else:
+            super().__setattr__(name)
 
 
 class ArrayMixin(object):
@@ -81,6 +94,62 @@ class ArrayMixin(object):
         super().__delitem__(key)
         self._obs____.emit('change',change_event)
 
+    def append(self,item):
+        change_event = {
+            'observed_obj':self,
+            'type':'append',
+            'index':len(self)-1,
+            'value':item
+        }
+        super().append(item)
+        self._obs____.emit('change',change_event)
+
+    def insert(self,index,item):
+        change_event = {
+            'observed_obj':self,
+            'type':'insert',
+            'index':index-1,
+            'value':item
+        }
+        super().insert(index,item)
+        self._obs____.emit('change',change_event)
+
+    def remove(self,item):
+        change_event = {
+            'observed_obj':self,
+            'type':'remove',
+            'value':item
+        }
+        super().remove(item)
+        self._obs____.emit('change',change_event)
+
+    def clear(self):
+        change_event = {
+            'observed_obj':self,
+            'type':'clear',
+        }
+        super().clear()
+        self._obs____.emit('change',change_event)
+
+    def extend(self,lst):
+        change_event = {
+            'observed_obj':self,
+            'type':'extend',
+            'value':lst
+        }
+        super().extend(lst)
+        self._obs____.emit('change',change_event)
+
+    def update(self,dct,**kwargs):
+        change_event = {
+            'observed_obj':self,
+            'type':'extend',
+            'value':dct,
+            'additional_value':kwargs
+        }
+        super().update(dct)
+        self._obs____.emit('change',change_event)
+
     def pop(self,*args):
         if len(args) > 0:
             index = args[0]
@@ -97,7 +166,11 @@ class ArrayMixin(object):
 
     def sort(self,*args,**kwargs):
         super().sort(*args,**kwargs)
-        self._obs____.emit('change',{'type':'change'})
+        self._obs____.emit('change',{'type':'sort'})
+
+    def reverse(self,*args,**kwargs):
+        super().reverse(*args,**kwargs)
+        self._obs____.emit('change',{'type':'reverse'})
 
 class ListProxy(list):
     def __init__(self, lst):
