@@ -3,16 +3,10 @@
 
     Notable differences:
 
-      - chaining bool operators, e.g. `1 <= 2 < 3` is not allowed
+      - chaining bool operators, e.g. `1 <= 2 < 3` is not supported
 
       - `-` immediately followed by a number is always taken to be a negative number, thus
         expressions like `10-1` are invalid
-
-      - Slicing and indexing only works for variables, not for expressions, e.g
-
-          `"ahoj"[0]`, `[10,20,30][-1]`, and `([a]+[b])[0]`
-
-        are all invalid expressions.
 
       - Tuples are not supported at all
 """

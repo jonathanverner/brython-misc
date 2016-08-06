@@ -281,4 +281,3 @@ def test_parse():
     expr = '[(1+2*a[1+3] - 10) for a in [[2,1,2,3,4,5],[1,2],[2,2,2,2,2,2,2]] if a[0] % 2 == 0]'
     ast = exp.parse(expr)
     assert ast.evaluate(ctx) == [-1,-5]
-
