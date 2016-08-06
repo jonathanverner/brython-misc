@@ -112,9 +112,9 @@ class TestExpObserver(object):
         self.ctx.lst[1]=2
         self.exec_test(1,1)
         self.ctx.a=2
-        self.exec_test(1,2)
+        self.exec_test(1,3)
         self.ctx.a=3
-        self.exec_test(2,None)
+        self.exec_test(3,None)
         self.ctx.lst[0].append(4)
         self.exec_test(None,4)
         self.ctx.lst.pop()

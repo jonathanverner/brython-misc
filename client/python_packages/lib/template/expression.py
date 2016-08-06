@@ -5,10 +5,7 @@
 
       - chaining bool operators, e.g. `1 <= 2 < 3` is not supported
 
-      - `-` immediately followed by a number is always taken to be a negative number, thus
-        expressions like `10-1` are invalid
-
-      - Tuples are not supported at all
+      - Tuples are not supported
 """
 
 import re
@@ -41,7 +38,7 @@ KEYWORD_RE = re.compile('(for)[^a-z_$].*|(if)[^a-z_$].*|(in)[^a-z_$].*')
 IS_NOT_RE = re.compile('^(is\s*not).*$')
 match_token_res = [
     (T_SPACE,re.compile('\s.*')),
-    (T_NUMBER,re.compile('-*[0-9].*')),
+    (T_NUMBER,re.compile('[0-9].*')),
     (T_LBRACKET,re.compile('\[.*')),
     (T_RBRACKET,re.compile('\].*')),
     (T_LPAREN,re.compile('\(.*')),
@@ -71,8 +68,11 @@ OP_PRIORITY = {
     '/':3,
     '//':3,
     '%':3,
+    '-unary':4,
     '**':4,
-    '.':5      # Attribute access has highest priority (e.g. a.c**2 is not a.(c**2))
+    '[]':5,    # Array slicing/indexing
+    '()':5,    # Function calling
+    '.':5      # Attribute access has highest priority (e.g. a.c**2 is not a.(c**2), and a.func(b) is not a.(func(b)))
 }
 
 def token_type(start_chars):
@@ -217,6 +217,7 @@ def tokenize(expr):
             yield (tokentype,expr[pos],pos+1)
             pos = pos+1
 
+
 class ExpNode(EventMixin):
     """ Base class for nodes in the AST tree """
 
@@ -238,6 +239,7 @@ class ExpNode(EventMixin):
     def _change_handler(self,event):
         pass
 
+
 class ConstNode(ExpNode):
     """ Node representing a string or number constant """
     def __init__(self,val):
@@ -255,55 +257,6 @@ class ConstNode(ExpNode):
 
 
 class IdentNode(ExpNode):
-    """
-            Nodes which have an identifier in them which can looked up in two different
-            ways:
-
-              -- the normal way just looks the identifier up in the provided @context
-
-              -- if a self_obj is provided, the identifier is instead looked up as an attribute
-                 of this obj
-
-            This includes VarNode, FuncNode and AttrAccessNode.
-    """
-    def __init__(self,ident):
-        super().__init__()
-        self._ident=ident
-        self._watched_ctx = None
-
-    def name(self):
-        return self._ident
-
-    def evaluate(self, context, self_obj=None):
-        pass
-
-    def watch(self,context,self_obj=None):
-        self.stop_forwarding(only_event='change')
-        self._watched_ctx = context
-        if self_obj is None:
-            self._self_obj = self_obj
-            observe(context,observer=self)
-            if hasattr(context,self.name()):
-                observe(getattr(context,self.name()),observer=self,throw=False)
-        else:
-            self._self_obj = self_obj
-            observe(self_obj,observer=self)
-            if hasattr(self_obj,self.name()):
-                observe(getattr(self_obj,self.name()),observer=self,throw=False)
-
-    def _change_handler(self,event):
-        data = event.data
-        if not data['observed_obj'] == self._watched_ctx:
-            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
-        elif data['key'] == self.name():
-            if 'old' in event.data:
-                self.stop_forwarding(only_obj=event.data['old'])
-            if 'value' in event.data:
-                observe(event.data['value'],observer=self,throw=False)
-            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
-
-
-class VarNode(IdentNode):
     """ Node representing an identifier or one of the predefined constants True, False, None"""
     CONSTANTS = {
         'True':True,
@@ -311,138 +264,156 @@ class VarNode(IdentNode):
         'None':None
     }
     def __init__(self,identifier):
-        super().__init__(identifier)
-        if self._ident in VarNode.CONSTANTS:
+        super().__init__()
+        self._ident = identifier
+        if self._ident in self.CONSTANTS:
             self._const = True
-            self._last_val = VarNode.CONSTANTS[self._ident]
+            self._last_val = self.CONSTANTS[self._ident]
         else:
             self._const = False
 
-    def watch(self, context, self_obj=None):
-        if not self._const:
-            super().watch(context,self_obj=self_obj)
+    def name(self):
+        return self._ident
 
-    def evaluate(self,context,self_obj=None):
-        if self_obj is None:
-            if not self._const:
-                self._last_val = context._get(self.name())
-        else:
-            return getattr(self_obj,self.name())
+
+    def watch(self, context):
+        if not self._const:
+            self._watched_ctx = context
+            observe(context,observer=self)
+            try:
+                observe(self.evaluate(context),observer=self,throw=False)
+            except:
+                pass
+
+    def evaluate(self,context):
+        if not self._const:
+            self._last_val = context._get(self.name())
         return self._last_val
 
+    def _change_handler(self,event):
+        if event.data['observed_obj'] == self._watched_ctx:
+            if event.data['key'] == self.name():
+                if hasattr(self,'_last_val'):
+                    self.stop_forwarding(only_obj=self._last_val)
+                if hasattr(self._watched_ctx,self.name()):
+                    observe(self._watched_ctx._get(self.name()),observer=self,throw=False)
+                self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+        else:
+            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+
     def __repr__(self):
-        return str(self._ident)
+        return self.name()
 
 
-class FuncNode(IdentNode):
-    """ Node representing a function call. """
-    def __init__(self, identifier, args, kwargs):
-        super().__init__(identifier)
-        self._args = args
+class MultiChildNode(ExpNode):
+    def __init__(self, children):
+        super().__init__()
+        self._children = children
+        for ch in self._children:
+            if ch is not None:
+                ch.bind('exp_change',self,'exp_change')
+
+    def evaluate(self, context):
+        self._last_val = []
+        for ch in self._children:
+            if ch is not None:
+                self._last_val.append(ch.evaluate(context))
+            else:
+                self._last_val.append(None)
+        return self._last_val
+
+        start,end,step = self.evaluate_children()
+        if self._slice:
+            return slice(start, end, step)
+        else:
+            return start
+
+    def watch(self,context):
+        for ch in self._children:
+            if ch is not None:
+                ch.watch(context)
+
+
+class FuncArgsNode(MultiChildNode):
+    def __init__(self, args, kwargs):
+        super().__init__(args)
         self._kwargs = kwargs
-        for a in self._args:
-            a.bind('exp_change',self,'exp_change')
         for (k,v) in self._kwargs:
             v.bind('exp_change',self,'exp_change')
 
-    def evaluate(self, context, self_obj=None):
-        if self_obj is None:
-            func = context._get(self.name())
-        else:
-            func = getattr(self_obj,self.name())
-        args = []
+    def evaluate(self,context):
+        args = super().evaluate(context)
         kwargs = {}
-        for a in self._args:
-            args.append(a.evaluate(context))
-        for a,v in self._kwargs.items():
-            kwargs[a] = v.evaluate(context)
-        self._last_val = func(*args,**kwargs)
+        for (k,v) in self._kwargs:
+            kwargs[k] = v.evaluate(context)
+        self._last_val = args,kwargs
         return self._last_val
 
-    def watch(self,context,self_obj=None):
-        super().watch(context,self_obj)
-        for a in self._args:
-            a.watch(context)
+    def watch(self, context):
+        super().watch(context)
         for (k,v) in self._kwargs:
             v.watch(context)
 
     def __repr__(self):
-        return str(self.name())+'('+','.join([repr(a) for a in self._args])+','.join([repr(k)+'='+repr(v) for (k,v) in self._kwargs.items()])+')'
+        return ','.join([repr(ch) for ch in self._children]+[k+'='+repr(v) for (k,v) in self._kwargs])
 
 
-class ListAccessNode(IdentNode):
-    """ Node representing an array slice, e.g. lst[10:15] (also includes lst[1]) """
-    def __init__(self,identifier,slice,start,end,step):
-        super().__init__(identifier)
-        self._ident = identifier
-        self._start = start
-        self._end = end
-        self._step = step
+class ListSliceNode(MultiChildNode):
+    def __init__(self,slice,start,end,step):
+        super().__init__([start,end,step])
         self._slice = slice
-        if self._start is not None:
-            self._start.bind('exp_change',self,'exp_change')
-        if self._end is not None:
-            self._end.bind('exp_change',self,'exp_change')
-        if self._step is not None:
-            self._step.bind('exp_change',self,'exp_change')
 
-    def evaluate(self, context, self_obj = None):
-        start,end,step = self._start,self._end,self._step
-        if start is not None:
-            start = start.evaluate(context)
-        if end is not None:
-            end = end.evaluate(context)
-        if step is not None:
-            step = step.evaluate(context)
+    def evaluate(self, context):
+        start,end,step = super().evaluate(context)
         if self._slice:
-            sl = slice(start, end, step)
+            return slice(start,end,step)
         else:
-            sl = start
-        self._last_val = self._ident.evaluate(context,self_obj=self_obj)[sl]
-        return self._last_val
-
-    def watch(self,context,self_obj=None):
-        self._ident.watch(context,self_obj=self_obj)
-        if self._start is not None:
-            self._start.watch(context)
-        if self._end is not None:
-            self._end.watch(context)
-        if self._step is not None:
-            self._step.watch(context)
-
-
+            return start
     def __repr__(self):
+        start,end,step=self._children
         if self._slice:
-            return str(self._ident)+'['+':'.join([repr(self._start),repr(self._end or ''),repr(self._step or '')])+']'
+            ret = ''
+            if start is None:
+                ret = ':'
+            else:
+                ret = repr(start)+':'
+            if end is not None:
+                ret += repr(end)
+            if step is not None:
+                ret += ':'+repr(step)
+            return ret
         else:
-            return str(self._ident)+'['+repr(self._start)+']'
+            return repr(start)
 
 
-class AttrAccessNode(IdentNode):
+class AttrAccessNode(ExpNode):
     """ Node representing attribute access, e.g. obj.prop """
     def __init__(self, obj, attribute):
-        super().__init__(obj.name())
+        super().__init__()
         self._obj = obj
+        self._obj_val = None
         self._attr = attribute
         self._obj.bind('exp_change',self,'exp_change')
-        self._attr.bind('exp_change',self,'exp_change')
 
-    def name(self):
-        return self._obj.name()
-
-    def evaluate(self,context,self_obj=None):
+    def evaluate(self,context):
         """
            Note that this function expects the AST of the attr access to
            be rooted at the rightmost element of the attr access chain !!
         """
-        obj = self._obj.evaluate(context)
-        self._last_val = self._attr.evaluate(context,self_obj=obj)
+        self._obj_val = self._obj.evaluate(context)
+        self._last_val = getattr(self._obj_val,self._attr.name())
         return self._last_val
 
     def watch(self,context):
-        obj = self._obj.evaluate(context)
+        self.stop_forwarding(only_event='change')
+        val = self.evaluate(context)
+        observe(val,observer = self,throw=False)
         self._obj.watch(context)
-        self._attr.watch(context,self_obj = obj)
+
+    def _change_handler(self,event):
+        if event.data['observed_obj'] == self._obj_val and not event.data['key'] == self._attr.name():
+            return
+        self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
 
     def __repr__(self):
         return repr(self._obj)+'.'+repr(self._attr)
@@ -461,7 +432,7 @@ class ListComprNode(ExpNode):
         if self._cond is not None:
             self._cond.bind('exp_change',self,'exp_change')
 
-    def evaluate(self,context,self_obj=None):
+    def evaluate(self,context):
         lst = self._lst.evaluate(context)
         ret = []
         var_name = self._var.name()
@@ -495,7 +466,7 @@ class ListNode(ExpNode):
         for e in self._lst:
             e.bind('exp_change',self,'exp_change')
 
-    def evaluate(self,context,self_obj=None):
+    def evaluate(self,context):
         ret = []
         for e in self._lst:
             ret.append(e.evaluate(context))
@@ -511,10 +482,12 @@ class ListNode(ExpNode):
 
 
 class OpNode(ExpNode):
-    """ Node representing an arithmetical/boolean operation, e.g. a is None or a**5 """
+    """ Node representing an operation, e.g. a is None, a**5, a[10], a.b or func(x,y)"""
+    UNARY= ['-unary','not']
     OPS = {
         '+':lambda x,y:x+y,
         '-':lambda x,y:x-y,
+        '-unary': lambda y:-y,
         '*':lambda x,y:x*y,
         '/':lambda x,y:x/y,
         '//':lambda x,y:x//y,
@@ -532,6 +505,8 @@ class OpNode(ExpNode):
         'is':lambda x,y:x is y,
         'in':lambda x,y:x in y,
         'is not':lambda x,y: x is not y,
+        '[]':lambda x,y: x[y],
+        '()':lambda func,args:func(*args[0],**args[1])
     }
 
     def __init__(self,operator,l_exp,r_exp):
@@ -543,9 +518,10 @@ class OpNode(ExpNode):
         if l_exp is not None: # The unary operator 'not' does not have a left argument
             l_exp.bind('exp_change',self,'exp_change')
         r_exp.bind('exp_change',self,'exp_change')
+        self.bind('exp_change',self._change_handler)
 
-    def evaluate(self,context,self_obj=None):
-        if self._opstr == 'not':
+    def evaluate(self,context):
+        if self._opstr in self.UNARY:
             self._last_val = self._op(self._rarg.evaluate(context))
         else:
             l = self._larg.evaluate(context)
@@ -554,14 +530,57 @@ class OpNode(ExpNode):
         return self._last_val
 
     def watch(self,context):
-        self._larg.watch(context)
+        self._watched_ctx = context
+        if self._opstr not in self.UNARY:
+            self._larg.watch(context)
+            if self._opstr in ['[]','()']:
+                try:
+                    self.evaluate(context)
+                    observe(self._last_val,observer=self)
+                except:
+                    pass
         self._rarg.watch(context)
 
-    def __repr__(self):
-        if self._opstr == 'not':
-            return '('+self._opstr+' '+repr(self._rarg)+')'
+    def _observe_val(self,context):
+        try:
+            self.evaluate(context)
+            observe(self._last_val,observer=self)
+            self._observing_val = self._last_val
+        except:
+            pass
+
+    def _change_handler(self,event):
+        if event.name == 'exp_change':
+            self.stop_forwarding(only_event='change')
+            self._observe_val(self._watched_ctx)
         else:
-            return '('+repr(self._larg)+' '+self._opstr+' '+repr(self._rarg)+')'
+            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+
+
+
+    def __repr__(self):
+        if self._opstr == '-unary':
+            return '-'+repr(self._rarg)
+        elif self._opstr == 'not':
+            return '(not '+repr(self._rarg)+')'
+        elif self._opstr == '[]':
+            return repr(self._larg)+'['+repr(self._rarg)+']'
+        elif self._opstr == '()':
+            return repr(self._larg)+'('+repr(self._rarg)+')'
+        elif self._opstr == '**':
+            return repr(self._larg)+'**'+repr(self._rarg)
+        else:
+            if isinstance(self._larg,OpNode) and OP_PRIORITY[self._larg._opstr] < OP_PRIORITY[self._opstr]:
+                    l_repr = '('+repr(self._larg)+')'
+            else:
+                l_repr = repr(self._larg)
+
+            if isinstance(self._rarg,OpNode) and OP_PRIORITY[self._rarg._opstr] <= OP_PRIORITY[self._opstr]:
+                    r_repr = '('+repr(self._rarg)+')'
+            else:
+                r_repr = repr(self._rarg)
+
+            return l_repr+' '+self._opstr+' '+r_repr
 
 
 def partial_eval(arg_stack,op_stack,pri=-1):
@@ -571,7 +590,7 @@ def partial_eval(arg_stack,op_stack,pri=-1):
     while len(op_stack) > 0 and pri <= OP_PRIORITY[op_stack[-1][1]]:
         token,op = op_stack.pop()
         ar = arg_stack.pop()
-        if op == 'not':
+        if op in OpNode.UNARY:
             al = None
         else:
             al=arg_stack.pop()
@@ -639,7 +658,7 @@ def parse_slice(token_stream):
         slice = False
         index_e = None
         step = None
-    return slice,index_s, index_e, step
+    return slice, index_s, index_e, step
 
 
 
@@ -668,16 +687,15 @@ def _parse(token_stream,end_tokens=[]):
             else:
                 return arg_stack[0], token, pos
         elif token == T_IDENTIFIER:
-            arg_stack.append(VarNode(val))
+            arg_stack.append(IdentNode(val))
         elif token in [T_NUMBER, T_STRING]:
             arg_stack.append(ConstNode(val))
         elif token == T_OPERATOR or token == T_DOT or (token == T_KEYWORD and val == 'in'):
             # NOTE: '.' and 'in' are, in this context, operators.
             # If the operator has lower priority than operators on the @op_stack
             # we need to evaluate all pending operations with higher priority
-            # FIXME: Implement '-' as a binary/unary operator using the following
-            #        observation: if '-' is preceded by an operator, it is the unary '-'
-            #        operator ('-unary'), otherwise it is binary
+            if val == '-' and (prev_token == T_OPERATOR or prev_token is None or prev_token == T_LBRACKET_LIST or prev_token == T_LPAREN_EXPR):
+                val = '-unary'
             pri = OP_PRIORITY[val]
             partial_eval(arg_stack,op_stack,pri)
             op_stack.append((token,val))
@@ -686,14 +704,15 @@ def _parse(token_stream,end_tokens=[]):
             # We destinguish between the two cases by noticing that first case must either
             # be at the start of the expression or be directly preceded by an operator
             if prev_token == T_OPERATOR or prev_token is None or (token == T_KEYWORD and val == 'in') or prev_token == T_LBRACKET_LIST or prev_token == T_LPAREN_EXPR or prev_token== T_LPAREN_FUNCTION:
-                lst_node = parse_lst(token_stream)
+                arg_stack.append(parse_lst(token_stream))
                 prev_token = T_LBRACKET_LIST
             else:
-                slice,index_s, index_e, step = parse_slice(token_stream)
-                ident = arg_stack.pop()
-                lst_node = ListAccessNode(ident,slice,index_s,index_e,step)
+                slice, index_s, index_e, step = parse_slice(token_stream)
+                pri = OP_PRIORITY['[]']
+                partial_eval(arg_stack,op_stack,pri)
+                arg_stack.append(ListSliceNode(slice,index_s,index_e,step))
+                op_stack.append((T_OPERATOR,'[]'))
                 prev_token = T_LBRACKET_INDEX
-            arg_stack.append(lst_node)
             prev_token_set = True
         elif token == T_LPAREN:
             # A '(' can either start a parenthesized expression or a function call.
@@ -702,13 +721,15 @@ def _parse(token_stream,end_tokens=[]):
             # TODO: Implement Tuples
             if prev_token == T_OPERATOR or prev_token is None or (token == T_KEYWORD and val == 'in') or prev_token == T_LBRACKET_LIST or prev_token == T_LBRACKET_INDEX or prev_token == T_LPAREN_EXPR or prev_token == T_LPAREN_FUNCTION:
                 op_stack.append((T_LPAREN_EXPR,val))
-                prev_token = T_LPAREN_FUNCTION
+                prev_token = T_LPAREN_EXPR
             else:
                 prev_token = T_LPAREN_FUNCTION
                 args, kwargs = parse_args(token_stream)
-                arg_stack.append(FuncNode(arg_stack.pop().name(),args,kwargs))
+                pri = OP_PRIORITY['()']
+                partial_eval(arg_stack,op_stack,pri)
+                arg_stack.append(FuncArgsNode(args,kwargs))
+                op_stack.append((T_OPERATOR,'()'))
             prev_token_set = True
-
         elif token == T_RPAREN:
             partial_eval(arg_stack,op_stack)
             if op_stack[-1][0] != T_LPAREN_EXPR:

@@ -80,11 +80,11 @@ def parse_mock(token_stream,end_tokens=[]):
         raise Exception("End of stream")
     tok,val,pos = token_stream.pop(0)
     if tok == exp.T_COLON:
-        return exp.VarNode('None'), tok, 0
+        return exp.IdentNode('None'), tok, 0
     elif tok == exp.T_RBRACKET:
         return None, tok, 0
     if tok == exp.T_IDENTIFIER:
-        return exp.VarNode(val),token_stream.pop(0)[0],0
+        return exp.IdentNode(val),token_stream.pop(0)[0],0
     else:
         return exp.ConstNode(val),token_stream.pop(0)[0],0
 
@@ -191,6 +191,14 @@ def test_parse():
     # Test Simple Arithmetic Expressions
     ast = exp.parse('(1+1*8)*9')
     assert ast.evaluate(ctx) is 81
+
+    # Test Simple Arithmetic Expressions
+    ast = exp.parse('(1-1)')
+    assert ast.evaluate(ctx) is 0
+
+    # Test Simple Arithmetic Expressions
+    ast = exp.parse('(-1)')
+    assert ast.evaluate(ctx) is -1
 
     # Test Boolean Expressions
     ast = exp.parse('True and False')
