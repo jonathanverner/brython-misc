@@ -275,6 +275,7 @@ class IdentNode(ExpNode):
     def __init__(self,ident):
         super().__init__()
         self._ident=ident
+        self._watched_ctx = None
 
     def name(self):
         return self._ident
@@ -283,16 +284,30 @@ class IdentNode(ExpNode):
         pass
 
     def watch(self,context,self_obj=None):
-        self.stop_forwarding(event='change')
+        self.stop_forwarding(only_event='change')
+        self._watched_ctx = context
         if self_obj is None:
+            self._self_obj = self_obj
             observe(context,observer=self)
+            if hasattr(context,self.name()):
+                observe(getattr(context,self.name()),observer=self,throw=False)
         else:
+            self._self_obj = self_obj
             observe(self_obj,observer=self)
+            if hasattr(self_obj,self.name()):
+                observe(getattr(self_obj,self.name()),observer=self,throw=False)
 
     def _change_handler(self,event):
         data = event.data
-        if data['key'] == self.name():
-            self.emit('exp_change',{'source_id':event.eventid})
+        if not data['observed_obj'] == self._watched_ctx:
+            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+        elif data['key'] == self.name():
+            if 'old' in event.data:
+                self.stop_forwarding(only_obj=event.data['old'])
+            if 'value' in event.data:
+                observe(event.data['value'],observer=self,throw=False)
+            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+
 
 class VarNode(IdentNode):
     """ Node representing an identifier or one of the predefined constants True, False, None"""
@@ -308,6 +323,10 @@ class VarNode(IdentNode):
             self._last_val = VarNode.CONSTANTS[self._ident]
         else:
             self._const = False
+
+    def watch(self, context, self_obj=None):
+        if not self._const:
+            super().watch(context,self_obj=self_obj)
 
     def evaluate(self,context,self_obj=None):
         if self_obj is None:
@@ -388,10 +407,14 @@ class ListAccessNode(IdentNode):
         self._last_val = self._ident.evaluate(context,self_obj=self_obj)[sl]
         return self._last_val
 
-    def watch(self,context,self_obj):
-        self._start.watch(context)
-        self._end.watch(context)
-        self._step.watch(context)
+    def watch(self,context,self_obj=None):
+        self._ident.watch(context,self_obj=self_obj)
+        if self._start is not None:
+            self._start.watch(context)
+        if self._end is not None:
+            self._end.watch(context)
+        if self._step is not None:
+            self._step.watch(context)
 
 
     def __repr__(self):
@@ -399,6 +422,7 @@ class ListAccessNode(IdentNode):
             return str(self._ident)+'['+':'.join([repr(self._start),repr(self._end or ''),repr(self._step or '')])+']'
         else:
             return str(self._ident)+'['+repr(self._start)+']'
+
 
 class AttrAccessNode(IdentNode):
     """ Node representing attribute access, e.g. obj.prop """
@@ -522,7 +546,8 @@ class OpNode(ExpNode):
         self._op = OpNode.OPS[operator]
         self._larg = l_exp
         self._rarg = r_exp
-        l_exp.bind('exp_change',self,'exp_change')
+        if l_exp is not None: # The unary operator 'not' does not have a left argument
+            l_exp.bind('exp_change',self,'exp_change')
         r_exp.bind('exp_change',self,'exp_change')
 
     def evaluate(self,context,self_obj=None):
