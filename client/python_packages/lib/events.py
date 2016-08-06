@@ -65,13 +65,19 @@ class EventMixin:
             self._event_handlers[event] = []
         self._event_handlers[event].append(handler)
 
-    def stop_forwarding(self,event = None):
+    def stop_forwarding(self, only_event = None, only_obj = None):
         """
-           Stops forwarding all events
+           Stops forwarding events which satisfy the following:
+
+           1. If @only_event is None the rule is satisfied. Otherwise the event
+           satisfies the rule if it is equal to @only_event.
+
+           2. If @only_obj is None the rule is satisfied. Otherwise the event
+           satisfies the rule if it originates from object @only_obj
         """
         retain = []
         for (obj,h,e) in self._forwarding_from_objects:
-            if event is None or e == event:
+            if (only_event is None or e == only_event) and (only_obj is None or obj == only_obj):
                 obj.unbind(e,h)
             else:
                 retain.append((obj,h,e))
