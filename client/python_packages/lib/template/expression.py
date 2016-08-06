@@ -230,7 +230,7 @@ class ExpNode(EventMixin):
         super().__init__()
         self.bind('change',self._change_handler)
 
-    def evaluate(self,context):
+    def evaluate(self,context,self_obj=None):
         """ Evaluates the node looking up identifiers in @context."""
         pass
 
@@ -253,7 +253,7 @@ class ConstNode(ExpNode):
     def name(self):
         return self._last_val
 
-    def evaluate(self,context):
+    def evaluate(self,context,self_obj = None):
         return self._last_val
 
     def __repr__(self):
@@ -443,7 +443,7 @@ class ListComprNode(ExpNode):
         if self._cond is not None:
             self._cond.bind('exp_change',self,'exp_change')
 
-    def evaluate(self,context):
+    def evaluate(self,context,self_obj=None):
         lst = self._lst.evaluate(context)
         ret = []
         var_name = self._var.name()
@@ -477,7 +477,7 @@ class ListNode(ExpNode):
         for e in self._lst:
             e.bind('exp_change',self,'exp_change')
 
-    def evaluate(self,context):
+    def evaluate(self,context,self_obj=None):
         ret = []
         for e in self._lst:
             ret.append(e.evaluate(context))
@@ -525,7 +525,7 @@ class OpNode(ExpNode):
         l_exp.bind('exp_change',self,'exp_change')
         r_exp.bind('exp_change',self,'exp_change')
 
-    def evaluate(self,context):
+    def evaluate(self,context,self_obj=None):
         if self._opstr == 'not':
             self._last_val = self._op(self._rarg.evaluate(context))
         else:
@@ -639,6 +639,8 @@ def _parse(token_stream,end_tokens=[]):
     """
     arg_stack = []
     op_stack = []
+    prev_token = None
+    prev_token_set = False
     for (token,val,pos) in token_stream:
         if token in end_tokens: # The token is unconsumed and in the stoplist, so we evaluate what we can and stop parsing
             partial_eval(arg_stack,op_stack)
@@ -654,31 +656,40 @@ def _parse(token_stream,end_tokens=[]):
             # NOTE: '.' and 'in' are, in this context, operators.
             # If the operator has lower priority than operators on the @op_stack
             # we need to evaluate all pending operations with higher priority
+            # FIXME: Implement '-' as a binary/unary operator using the following
+            #        observation: if '-' is preceded by an operator, it is the unary '-'
+            #        operator ('-unary'), otherwise it is binary
             pri = OP_PRIORITY[val]
             partial_eval(arg_stack,op_stack,pri)
             op_stack.append((token,val))
         elif token == T_LBRACKET:
             # '[' can either start a list constant/comprehension, e.g. [1,2,3] or list slice, e.g. ahoj[1:10];
-            #    we distinguish between the two cases by noticing that the second case needs an identifier
-            #    to immediately precede it
-            # FIXME: This does not allow slicing strings or expressions, e.g. "ahoj"[:-1] is invalid as is [1,2,3][0]
-            if len(arg_stack)>0 and isinstance(arg_stack[-1],VarNode):
+            # We destinguish between the two cases by noticing that first case must either
+            # be at the start of the expression or be directly preceded by an operator
+            if prev_token == T_OPERATOR or prev_token is None or (token == T_KEYWORD and val == 'in') or prev_token == T_LBRACKET_LIST or prev_token == T_LPAREN_EXPR or prev_token== T_LPAREN_FUNCTION:
+                lst_node = parse_lst(token_stream)
+                prev_token = T_LBRACKET_LIST
+            else:
                 slice,index_s, index_e, step = parse_slice(token_stream)
                 ident = arg_stack.pop()
                 lst_node = ListAccessNode(ident,slice,index_s,index_e,step)
-            else:
-                lst_node = parse_lst(token_stream)
+                prev_token = T_LBRACKET_INDEX
             arg_stack.append(lst_node)
+            prev_token_set = True
         elif token == T_LPAREN:
             # A '(' can either start a parenthesized expression or a function call.
-            # We destinguish between the two cases by noticing that the second case needs an identifier
-            # to immediately precede it
+            # We destinguish between the two cases by noticing that first case must either
+            # be at the start of the expression or be directly preceded by an operator
             # TODO: Implement Tuples
-            if len(arg_stack)>0 and isinstance(arg_stack[-1],VarNode):
+            if prev_token == T_OPERATOR or prev_token is None or (token == T_KEYWORD and val == 'in') or prev_token == T_LBRACKET_LIST or prev_token == T_LBRACKET_INDEX or prev_token == T_LPAREN_EXPR or prev_token == T_LPAREN_FUNCTION:
+                op_stack.append((T_LPAREN_EXPR,val))
+                prev_token = T_LPAREN_FUNCTION
+            else:
+                prev_token = T_LPAREN_FUNCTION
                 args, kwargs = parse_args(token_stream)
                 arg_stack.append(FuncNode(arg_stack.pop().name(),args,kwargs))
-            else:
-                op_stack.append((T_LPAREN_EXPR,val))
+            prev_token_set = True
+
         elif token == T_RPAREN:
             partial_eval(arg_stack,op_stack)
             if op_stack[-1][0] != T_LPAREN_EXPR:
@@ -686,9 +697,11 @@ def _parse(token_stream,end_tokens=[]):
             op_stack.pop()
         else:
             raise Exception("Unexpected token "+str((token,val))+" at "+str(pos))
+        if not prev_token_set:
+            prev_token = token
+        else:
+            prev_token_set = False
     partial_eval(arg_stack,op_stack)
     if len(arg_stack) > 2 or len(op_stack) > 0:
         raise Exception("Invalid expression, leftovers: args:"+str(arg_stack)+"ops:"+str(op_stack))
     return arg_stack[0],None,pos
-
-

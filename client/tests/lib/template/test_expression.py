@@ -251,6 +251,23 @@ def test_parse():
     ast = exp.parse('obj.d[0].a')
     assert ast.evaluate(ctx) == 30
 
+    # Test Array Access
+    ast = exp.parse('mylst[0][1][2]')
+    ctx.mylst = [[None,[None,None,"Ahoj"]]]
+    assert ast.evaluate(ctx) == "Ahoj"
+
+    # Test String slices
+    ast = exp.parse('"ahoj"[1:]')
+    assert ast.evaluate(ctx) == "hoj"
+    ast = exp.parse('"ahoj"[:1]')
+    assert ast.evaluate(ctx) == "a"
+    ast = exp.parse('"ahoj"[-1]')
+    assert ast.evaluate(ctx) == "j"
+
+    # Test array concatenation
+    ast = exp.parse('([0]+["mixin"])[1]')
+    assert ast.evaluate(ctx)  == "mixin"
+
     # Test Function Calls
     ast = exp.parse('"a,b,c,d".split(",")')
     assert ast.evaluate(ctx) == ['a', 'b', 'c', 'd']
