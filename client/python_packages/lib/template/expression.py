@@ -332,20 +332,20 @@ class FuncArgsNode(MultiChildNode):
     def __init__(self, args, kwargs):
         super().__init__(args)
         self._kwargs = kwargs
-        for (k,v) in self._kwargs:
+        for (k,v) in self._kwargs.items():
             v.bind('exp_change',self,'exp_change')
 
     def evaluate(self,context):
         args = super().evaluate(context)
         kwargs = {}
-        for (k,v) in self._kwargs:
+        for (k,v) in self._kwargs.items():
             kwargs[k] = v.evaluate(context)
         self._last_val = args,kwargs
         return self._last_val
 
     def watch(self, context):
         super().watch(context)
-        for (k,v) in self._kwargs:
+        for (k,v) in self._kwargs.items():
             v.watch(context)
 
     def __repr__(self):
@@ -727,7 +727,7 @@ def _parse(token_stream,end_tokens=[]):
         elif token == T_RPAREN:
             partial_eval(arg_stack,op_stack)
             if op_stack[-1][0] != T_LPAREN_EXPR:
-                raise "Expecting '(' at "+str(pos)
+                raise Exception("Expecting '(' at "+str(pos))
             op_stack.pop()
         else:
             raise Exception("Unexpected token "+str((token,val))+" at "+str(pos))
