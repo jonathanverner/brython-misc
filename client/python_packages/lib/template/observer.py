@@ -10,6 +10,7 @@ def extend_instance(obj, cls):
     base_cls = obj.__class__
     base_cls_name = obj.__class__.__name__
     obj.__class__ = type(base_cls_name, (cls,base_cls),{})
+    obj._orig_class = base_cls
 
 
 class ObjMixin(object):
@@ -27,9 +28,11 @@ class ObjMixin(object):
             }
             if hasattr(self,name):
                 change_event['old'] = getattr(self,name)
-            super().__setattr__(name,value)
+            self._orig_class.__setattr__(self,name,value)
+            #super().__setattr__(name,value)
             self._obs____.emit('change',change_event)
         else:
+            #self._orig_class.__setattr__(self,name,value)
             super().__setattr__(name,value)
 
     def __delattr__(self, name):
@@ -41,10 +44,11 @@ class ObjMixin(object):
             }
             if hasattr(self,name):
                 change_event['old'] = getattr(self,name)
-            super().__delattr__(name)
+            self._orig_class.__delattr__(self,name)
+            #super().__delattr__(name)
             self._obs____.emit('change',change_event)
         else:
-            super().__setattr__(name)
+            super().__delattr__(name)
 
 
 class ArrayMixin(object):
@@ -62,7 +66,8 @@ class ArrayMixin(object):
             }
             if hasattr(self,name):
                 change_event['old'] = getattr(self,name)
-            super().__setattr__(name,value)
+            self._orig_class.__setattr__(self,name,value)
+            #super().__setattr__(name,value)
             self._obs____.emit('change',change_event)
         else:
             super().__setattr__(name,value)
@@ -78,7 +83,8 @@ class ArrayMixin(object):
             change_event['old']=self[key]
         except:
             pass
-        super().__setitem__(key,value)
+        self._orig_class.__setitem__(self,key,value)
+        #super().__setitem__(key,value)
         self._obs____.emit('change',change_event)
 
     def __delitem__(self, key):
@@ -91,7 +97,8 @@ class ArrayMixin(object):
             change_event['old']=self[key]
         except:
             pass
-        super().__delitem__(key)
+        self._orig_class.__delitem__(self,key)
+        #super().__delitem__(key)
         self._obs____.emit('change',change_event)
 
     def append(self,item):
@@ -101,7 +108,8 @@ class ArrayMixin(object):
             'index':len(self)-1,
             'value':item
         }
-        super().append(item)
+        self._orig_class.append(self,item)
+        #super().append(item)
         self._obs____.emit('change',change_event)
 
     def insert(self,index,item):
@@ -111,7 +119,8 @@ class ArrayMixin(object):
             'index':index-1,
             'value':item
         }
-        super().insert(index,item)
+        self._orig_class.insert(self,index,item)
+        #super().insert(index,item)
         self._obs____.emit('change',change_event)
 
     def remove(self,item):
@@ -120,7 +129,8 @@ class ArrayMixin(object):
             'type':'remove',
             'value':item
         }
-        super().remove(item)
+        self._orig_class.remove(self,item)
+        #super().remove(item)
         self._obs____.emit('change',change_event)
 
     def clear(self):
@@ -128,7 +138,8 @@ class ArrayMixin(object):
             'observed_obj':self,
             'type':'clear',
         }
-        super().clear()
+        self._orig_class.clear(self)
+        #super().clear()
         self._obs____.emit('change',change_event)
 
     def extend(self,lst):
@@ -137,7 +148,8 @@ class ArrayMixin(object):
             'type':'extend',
             'value':lst
         }
-        super().extend(lst)
+        self._orig_class.extend(self,lst)
+        #super().extend(lst)
         self._obs____.emit('change',change_event)
 
     def update(self,dct,**kwargs):
@@ -147,7 +159,8 @@ class ArrayMixin(object):
             'value':dct,
             'additional_value':kwargs
         }
-        super().update(dct)
+        self._orig_class.update(self,dct)
+        #super().update(dct)
         self._obs____.emit('change',change_event)
 
     def pop(self,*args):
@@ -160,16 +173,19 @@ class ArrayMixin(object):
             'type':'__delitem__',
             'key':index,
         }
-        change_event['old']=super().pop(*args)
+        change_event['old']=self._orig_class.pop(self,*args)
+        #change_event['old']=super().pop(*args)
         self._obs____.emit('change',change_event)
         return change_event['old']
 
     def sort(self,*args,**kwargs):
-        super().sort(*args,**kwargs)
+        self._orig_class.sort(self,*args,**kwargs)
+        #super().sort(*args,**kwargs)
         self._obs____.emit('change',{'type':'sort'})
 
     def reverse(self,*args,**kwargs):
-        super().reverse(*args,**kwargs)
+        self._orig_class.reverse(self,*args,**kwargs)
+        #super().reverse(*args,**kwargs)
         self._obs____.emit('change',{'type':'reverse'})
 
 class ListProxy(list):
