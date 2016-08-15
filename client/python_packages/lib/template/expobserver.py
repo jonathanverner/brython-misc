@@ -13,6 +13,14 @@ class ExpObserver(EventMixin):
         self.evaluate()
         self._last_event_id = -1
 
+    @property
+    def context(self):
+        return self.ctx
+
+    @context.setter
+    def context(self,ctx):
+        self.ctx.reset(ctx)
+
     def _change_chandler(self,event):
         if event.data['source_id'] == self._last_event_id:
             return

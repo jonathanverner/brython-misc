@@ -6,6 +6,15 @@ class Context(object):
         self._dct = dct
         self._saved = {}
 
+    def reset(self,dct):
+        for k in self._dct.keys():
+            del self[k]
+        for k in dct:
+            self[k] = dct[k]
+
+    def __iter__(self):
+        return self._dct.__iter__
+
     def __getattr__(self,attr):
         if attr in self._dct:
             return self._dct[attr]
