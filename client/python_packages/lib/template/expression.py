@@ -281,7 +281,7 @@ class IdentNode(ExpNode):
             self._watched_ctx = context
             observe(context,observer=self)
             try:
-                observe(self.evaluate(context),observer=self,throw=False)
+                observe(self.evaluate(context),observer=self,ignore_errors=True)
             except:
                 pass
 
@@ -296,7 +296,7 @@ class IdentNode(ExpNode):
                 if hasattr(self,'_last_val'):
                     self.stop_forwarding(only_obj=self._last_val)
                 if hasattr(self._watched_ctx,self.name()):
-                    observe(self._watched_ctx._get(self.name()),observer=self,throw=False)
+                    observe(self._watched_ctx._get(self.name()),observer=self,ignore_errors=True)
                 self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
         else:
             self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
@@ -407,7 +407,7 @@ class AttrAccessNode(ExpNode):
     def watch(self,context):
         self.stop_forwarding(only_event='change')
         val = self.evaluate(context)
-        observe(val,observer = self,throw=False)
+        observe(val,observer = self,ignore_errors=True)
         self._obj.watch(context)
 
     def _change_handler(self,event):

@@ -196,7 +196,7 @@ class DictProxy(dict):
                 me[k]=v
         super().__init__(me)
 
-def observe(obj,observer=None,throw=True):
+def observe(obj,observer=None,ignore_errors=False):
     if not hasattr(obj,'_obs____'):
         try:
             if hasattr(obj,'__setitem__'):
@@ -205,7 +205,7 @@ def observe(obj,observer=None,throw=True):
                 extend_instance(obj,ObjMixin)
             obj._create_observer()
         except Exception as e:
-            if throw:
+            if not ignore_errors:
                 raise Exception("Cannot observe (is obj a primitive type?):"+str(e))
             else:
                 return None
