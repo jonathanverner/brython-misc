@@ -322,12 +322,6 @@ class MultiChildNode(ExpNode):
                 self._last_val.append(None)
         return self._last_val
 
-        start,end,step = self.evaluate_children()
-        if self._slice:
-            return slice(start, end, step)
-        else:
-            return start
-
     def watch(self,context):
         for ch in self._children:
             if ch is not None:
