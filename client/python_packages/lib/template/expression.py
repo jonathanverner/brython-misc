@@ -591,15 +591,18 @@ def partial_eval(arg_stack,op_stack,pri=-1):
         arguments taken from the @arg_stack. The result is always placed back on the @arg_stack"""
     while len(op_stack) > 0 and pri <= OP_PRIORITY[op_stack[-1][1]]:
         token,op = op_stack.pop()
-        ar = arg_stack.pop()
-        if op in OpNode.UNARY:
-            al = None
-        else:
-            al=arg_stack.pop()
-        if op == '.':
-            arg_stack.append(AttrAccessNode(al,ar))
-        else:
-            arg_stack.append(OpNode(op,al,ar))
+        try:
+            ar = arg_stack.pop()
+            if op in OpNode.UNARY:
+                al = None
+            else:
+                al=arg_stack.pop()
+            if op == '.':
+                arg_stack.append(AttrAccessNode(al,ar))
+            else:
+                arg_stack.append(OpNode(op,al,ar))
+        except IndexError:
+            raise Exception("Not enough arguments for operator '"+op+"'")
 
 def parse_args(token_stream):
     """ Parses function arguments from the stream and returns them as a pair (args,kwargs)
