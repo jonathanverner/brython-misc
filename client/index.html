@@ -60,6 +60,9 @@
   <body onload="onLoadHandler()">
     <div id='test' class="{{ ' '.join(classes) }}">
     Ahoj {{ name }} {{ surname }}!
+    <ul>
+        <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>
+    </ul>
     </div>
     <ide-app> Loading... </ide-app>
   </body>

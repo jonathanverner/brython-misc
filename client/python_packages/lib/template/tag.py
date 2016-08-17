@@ -283,17 +283,22 @@ TplNode.register_plugin(Style)
 
 
 class For(TagPlugin):
-    SPEC_RE = re.compile('^\s*for\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
+    SPEC_RE = re.compile('^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
     COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
 
     def __init__(self,node,element,loop_spec):
         super().__init__(node,element)
 
-        m=For.SPEC_RE.match(loop_spec).groupdict()
+        m=For.SPEC_RE.match(loop_spec)
+        if m is None:
+            raise Exception("Invalid loop specification: "+loop_spec)
+        else:
+            m = m.groupdict()
         self._var = m['loop_var']
-        self._exp,pos = parse(m['sequence_exp'],trailing_garbage_ok=True)
+        sequence_exp = m['sequence_exp']
+        self._exp,pos = parse(sequence_exp,trailing_garbage_ok=True)
         self._exp.bind('exp_change',self._change_chandler)
-        m = For.COND_RE.match(loop_spec[pos:])
+        m = For.COND_RE.match(sequence_exp[pos:])
         if m:
             self._cond = parse(m['condition'])
         else:
@@ -311,15 +316,22 @@ class For(TagPlugin):
         self._update()
 
     def _update(self):
-        self._lst = self._exp.evaluate(self._ctx)
+        try:
+            self._lst = self._exp.evaluate(self._ctx)
+        except Exception as ex:
+            logger.warn("Exception",ex,"when computing list",self._exp,"with context",self._ctx)
+            self._lst = []
         self._clones=[]
         self._parent_node.cut(self._before,self._after)
         for item in self._lst:
             c=Context({self._var:item})
-            if self._cond is None or self._cond.evaluate(c):
-                clone = self._template_node.clone()
-                clone.bind_ctx(c)
-                self._clones.append(clone)
+            try:
+                if self._cond is None or self._cond.evaluate(c):
+                    clone = self._template_node.clone()
+                    clone.bind_ctx(c)
+                    self._clones.append(clone)
+            except Exception as ex:
+                logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
         self._parent_node.insert(self._before,self._after,self._clones)
 
     def _change_chandler(self,ev):
