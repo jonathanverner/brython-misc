@@ -144,8 +144,8 @@ class TplNode(EventMixin):
     def register_plugin(cls,plugin_class):
         plugin_name = getattr(plugin_class,'NAME',None) or plugin_class.__name__
         plugin_name = plugin_name.upper().replace('_','-')
-        if issubclass(plugin_class,TagPlugin):
-           cls.TAG_PLUGINS[plugin_name] = plugin_class
+        if issubclass(plugin_class,AttrPlugin):
+           cls.ATTR_PLUGINS[plugin_name] = plugin_class
         else:
             meta = {
                 'cls':plugin_class,
@@ -153,7 +153,7 @@ class TplNode(EventMixin):
                 'name': plugin_name
             }
             meta['attrs'].remove('self')
-            cls.ATTR_PLUGINS[plugin_name]=meta
+            cls.TAG_PLUGINS[plugin_name]=meta
 
     def __init__(self,dom_element,parent=None):
         self._element = dom_element
@@ -186,7 +186,7 @@ class TplNode(EventMixin):
             if canonical_tag_name in self.TAG_PLUGINS:
                 meta=self._tag_plugin = self.TAG_PLUGINS[canonical_tag_name]
                 kwargs = {}
-                for attr in meta['attributes']:
+                for attr in meta['attrs']:
                     try:
                         kwargs[attr] = getattr(self._element,attr)
                     except:
