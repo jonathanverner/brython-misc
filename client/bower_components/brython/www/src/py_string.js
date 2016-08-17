@@ -1658,7 +1658,7 @@ function str(arg){
              return getattr(f,'__call__')()
         }catch(err){
              if($B.debug>1){console.log(err)}
-             console.log('Warning - no method __str__ or __repr__, default to toString', arg)
+//              console.log('Warning - no method __str__ or __repr__, default to toString', arg)
              return arg.toString()
         }
     }
