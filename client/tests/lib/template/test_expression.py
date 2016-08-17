@@ -185,6 +185,27 @@ def test_parse_slice():
     ]
     assert str(exp.parse_slice(token_stream)) ==  '(True, a, 123, b)'
 
+def test_parse_interpolated_string():
+    ctx = Context()
+    ctx.name = 'Name'
+
+    asts = exp.parse_interpolated_str('Test text {{ 1+3 }} other text {{ "ahoj" }} final text.')
+    val = "".join([ast.evaluate(ctx) for ast in asts])
+    assert val == 'Test text 4 other text ahoj final text.'
+
+    asts = exp.parse_interpolated_str('Test text {{ 1+3 }} other text {{ name }} final text.')
+    val = "".join([ast.evaluate(ctx) for ast in asts])
+    assert val == 'Test text 4 other text Name final text.'
+
+    asts = exp.parse_interpolated_str('Test text {{ 1+3 }} other text {{ len(name) }} final text.')
+    val = "".join([ast.evaluate(ctx) for ast in asts])
+    assert val == 'Test text 4 other text 4 final text.'
+
+    asts = exp.parse_interpolated_str('Test text {{ "{{{{}}{}{}}}" }} other }}')
+    val = "".join([ast.evaluate(ctx) for ast in asts])
+    assert val == 'Test text {{{{}}{}{}}} other }}'
+
+
 def test_parse():
     ctx = Context()
 

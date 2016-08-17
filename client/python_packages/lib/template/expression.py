@@ -8,6 +8,9 @@
       - Tuples are not supported
 """
 
+ET_EXPRESSION = 0
+ET_INTERPOLATED_STRING = 1
+
 import re
 
 from lib.events import EventMixin
@@ -19,19 +22,21 @@ T_LBRACKET = 2
 T_RBRACKET = 3
 T_LPAREN = 4
 T_RPAREN = 5
-T_DOT=6
-T_COMMA=7
-T_COLON=8
-T_OPERATOR = 9
-T_STRING = 10           # Started by " or '; there is NO distinction between backslash escaping between the two; """,''' and modifiers (e.g. r,b) not implemented"
-T_IDENTIFIER = 11       # Including True, False, None, an identifier starts by alphabetical character and is followed by alphanumeric characters and/or _$
-T_LBRACKET_INDEX = 12   # Bracket starting a list slice
-T_LBRACKET_LIST = 13    # Bracket starting a list
-T_LPAREN_FUNCTION = 14  # Parenthesis starting a function call
-T_LPAREN_EXPR = 15      # Parenthesis starting a subexpression
-T_EQUAL = 16
-T_KEYWORD = 17          # Warning: This does not include True,False,None; these fall in the T_IDENTIFIER category, also this includes 'in' which can, in certain context, be an operator
-T_UNKNOWN = 18
+T_LBRACE = 6
+T_RBRACE = 7
+T_DOT=8
+T_COMMA=9
+T_COLON=10
+T_OPERATOR = 11
+T_STRING = 12           # Started by " or '; there is NO distinction between backslash escaping between the two; """,''' and modifiers (e.g. r,b) not implemented"
+T_IDENTIFIER = 13       # Including True, False, None, an identifier starts by alphabetical character and is followed by alphanumeric characters and/or _$
+T_LBRACKET_INDEX = 14   # Bracket starting a list slice
+T_LBRACKET_LIST = 15    # Bracket starting a list
+T_LPAREN_FUNCTION = 16  # Parenthesis starting a function call
+T_LPAREN_EXPR = 17      # Parenthesis starting a subexpression
+T_EQUAL = 18
+T_KEYWORD = 19          # Warning: This does not include True,False,None; these fall in the T_IDENTIFIER category, also this includes 'in' which can, in certain context, be an operator
+T_UNKNOWN = 20
 
 IDENTIFIER_INNERCHAR_RE = re.compile('[a-z_$0-9]',re.IGNORECASE)
 KEYWORD_RE = re.compile('(for)[^a-z_$].*|(if)[^a-z_$].*|(in)[^a-z_$].*')
@@ -43,6 +48,8 @@ match_token_res = [
     (T_RBRACKET,re.compile('\].*')),
     (T_LPAREN,re.compile('\(.*')),
     (T_RPAREN,re.compile('\).*')),
+    (T_LBRACE,re.compile('{')),
+    (T_RBRACE,re.compile('}')),
     (T_DOT,re.compile('\..*')),
     (T_COMMA,re.compile(',.*')),
     (T_COLON,re.compile(':.*')),
@@ -669,7 +676,36 @@ def parse_slice(token_stream):
 
 
 
-def parse(expr):
+def parse_interpolated_str(tpl_expr):
+    """ Parses a string of the form
+
+          Test text {{ exp }} other text {{ exp2 }} final text.
+
+        where `exp` and `exp2` are expressions and returns a list of asts
+        representing the expressions:
+
+          ["Test text ",str(exp)," other text ",str(exp2)," final text."]
+    """
+    last_pos=0
+    abs_pos=tpl_expr.find("{{",0)
+    token_stream = tokenize(tpl_expr[abs_pos+2:])
+    ret = []
+    while abs_pos > -1:
+        ret.append(ConstNode(tpl_expr[last_pos:abs_pos]))               # Get string from last }} to current {{
+        abs_pos += 2                                                    # Skip '{{'
+        token_stream = tokenize(tpl_expr[abs_pos:])                     # Tokenize string from {{ to the ending }}
+        ast,etok,rel_pos = _parse(token_stream,end_tokens=[T_RBRACE])
+        abs_pos += rel_pos                                              # Move to the second ending brace of the expression
+        if not tpl_expr[abs_pos] == "}":
+            raise Exception("Invalid interpolated string, expecting '}' at "+str(abs_pos)+" got '"+str(tpl_expr[abs_pos])+"' instead.")
+        else:
+            abs_pos += 1                                                # Skip the ending '}'
+        ret.append(OpNode("()",IdentNode("str"),FuncArgsNode([ast],{}))) # Wrap the expression in a str call and add it to the list
+        last_pos = abs_pos
+        abs_pos = tpl_expr.find("{{",last_pos)
+    if len(tpl_expr) > last_pos:
+        ret.append(ConstNode(tpl_expr[last_pos:]))
+    return ret
     token_stream = tokenize(expr)
     ast,etok,pos = _parse(token_stream)
     return ast
