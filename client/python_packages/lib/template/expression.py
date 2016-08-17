@@ -263,6 +263,11 @@ class IdentNode(ExpNode):
         'False':False,
         'None':None
     }
+    BUILTINS = {
+        'str':str,
+        'int':int,
+        'len':len
+    }
     def __init__(self,identifier):
         super().__init__()
         self._ident = identifier
@@ -287,7 +292,10 @@ class IdentNode(ExpNode):
 
     def evaluate(self,context):
         if not self._const:
-            self._last_val = context._get(self.name())
+            try:
+                self._last_val = context._get(self.name())
+            except KeyError:
+                self._last_val = self.BUILTINS[self.name()]
         return self._last_val
 
     def _change_handler(self,event):
