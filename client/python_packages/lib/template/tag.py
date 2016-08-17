@@ -303,9 +303,9 @@ class For(TagPlugin):
         setattr(elt_copy,TplNode.PLUGIN_PREFIX+'for',False) # Deletes the for attribute
         self._template_node = TplNode(elt_copy)
         self._parent_node = self._owner._parent
-        self._before,self._after=self._owner._parent.create_fence(self._owner)
 
     def bind_ctx(self,ctx):
+        self._before,self._after=self._owner._parent.create_fence(self._owner)
         self._ctx = ctx
         self._exp.watch(self._ctx)
         self._update()
