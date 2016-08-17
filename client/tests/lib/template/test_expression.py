@@ -264,6 +264,21 @@ def test_parse():
     ast = exp.parse('[p+1 for p in [1,2,3,4] if p%2==0]')
     assert ast.evaluate(ctx) == [3,5]
 
+    # Test Builtins
+    ast = exp.parse("str(10)")
+    assert ast.evaluate(ctx) == "10"
+
+    ast = exp.parse("int('21')")
+    assert ast.evaluate(ctx) == 21
+
+    ast = exp.parse("len([1,2,3])")
+    assert ast.evaluate(ctx) == 3
+
+    ctx.str=lambda x:"str("+str(x)+")"
+    ast = exp.parse("str(10)") == "str(10)"
+    del ctx.str
+
+
     # Test Object Access
     ctx.obj = Context()
     ctx.obj.a=10
