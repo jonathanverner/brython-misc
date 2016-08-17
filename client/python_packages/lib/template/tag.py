@@ -4,6 +4,9 @@ from .expobserver import ExpObserver
 from .expression import ET_INTERPOLATED_STRING, parse
 from .context import Context
 
+from lib.logger import Logger
+logger = Logger(__name__)
+
 import re
 
 class InterpolatedAttr(object):
@@ -61,7 +64,8 @@ class AttrDict(object):
     def context(self,ct):
         self._ctx = ct
         for (a,interp_attr) in self._attrs.items():
-            interp_attr.context = ct
+            if isinstance(interp_attr,InterpolatedAttr):
+                interp_attr.context = ct
 
     def bind_ctx(self,ct):
         self.context = ct
@@ -115,6 +119,7 @@ class AttrPlugin(Plugin):
 class ErrorPlugin(Plugin):
     def __init__(self,node,element,ex):
         super().__init__(node,element)
+        self._ex = ex
         self._element <= html.SPAN(str(ex))
 
 class TextPlugin(Plugin):
@@ -176,7 +181,8 @@ class TplNode(EventMixin):
                     try:
                         self._plugins.append(self.ATTR_PLUGINS[canonical_name](self,self._element,a.value))
                     except Exception as ex:
-                        self._tag_plugin = ErrorPlugin(self,self._element,ex)
+                        logger.warn("Error loading attr plugin: '",canonical_name,"':",ex)
+                        self._plugins.append(ErrorPlugin(self,self._element,ex))
                     self._exclude_attrs.append(a.name)
                 if canonical_name in self.TAG_PLUGINS:
                     canonical_tag_name = canonical_name
@@ -195,7 +201,8 @@ class TplNode(EventMixin):
                 try:
                     self._tag_plugin = meta['cls'](self,self._element,*tag_args,**kwargs)
                 except Exception as ex:
-                        self._tag_plugin = ErrorPlugin(self,self._element,ex)
+                    logger.warn("Error loading tag plugin: '",canonical_tag_name,"':",ex)
+                    self._tag_plugin = ErrorPlugin(self,self._element,ex)
             self._attrs = AttrDict(self._element,self._exclude_attrs)
             for ch in self._element.children:
                 self._children.append(TplNode(ch,self))
@@ -237,6 +244,7 @@ class TplNode(EventMixin):
         pos = self._children.index(node)
         self._children.insert(pos,start)
         self._children.insert(pos+2,end)
+        return start,end
 
     def cut(self,start,end):
         s_pos = self._children.index(start)
@@ -245,7 +253,7 @@ class TplNode(EventMixin):
             if isinstance(ch,TplNode):
                 self._element.remove(ch._element)
                 ch._parent = None
-        del self._children[s_pos+1,e_pos]
+        del self._children[s_pos+1:e_pos]
 
     def insert(self,start,end,nodes):
         e_pos=self._children.index(end)
@@ -261,6 +269,9 @@ class TplNode(EventMixin):
                 self._element.insertBefore(n._element,insert_before_elt)
         for n in nodes:
             self._children.insert(e_pos,n)
+
+    def __repr__(self):
+        return "TplNode(elt:"+str(self._element)+",tag:"+str(self._tag_plugin)+")"
 
 
 class Style(AttrPlugin):
