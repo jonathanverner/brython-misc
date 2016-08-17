@@ -2,8 +2,11 @@ from .observer import ListProxy, DictProxy
 
 class Context(object):
     """ Class used for looking up identifiers when evaluating an expression. """
-    def __init__(self, dct={}):
-        self._dct = dct
+    def __init__(self, dct=None):
+        if dct is None:
+            self._dct = {}
+        else:
+            self._dct = dct
         self._saved = {}
 
     def reset(self,dct):
