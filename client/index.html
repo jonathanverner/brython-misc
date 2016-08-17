@@ -58,7 +58,10 @@
 
   <!-- 3. Display the application -->
   <body onload="onLoadHandler()">
-    <ide-app>Loading...</ide-app>
+    <div id='test' class="{{ ' '.join(classes) }}">
+    Ahoj {{ name }} {{ surname }}!
+    </div>
+    <ide-app> Loading... </ide-app>
   </body>
 
 </html>
