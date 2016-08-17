@@ -1,15 +1,20 @@
-from .expression import parse
+from .expression import parse, ET_EXPRESSION, ET_INTERPOLATED_STRING, parse_interpolated_str
 from lib.events import EventMixin
 
 class ExpObserver(EventMixin):
 
-    def __init__(self,expression,context):
+    def __init__(self,expression,context, expression_type=ET_EXPRESSION):
         super().__init__()
         self._exp_src = expression
-        self.ast = parse(expression)
+        self._exp_type = expression_type
+        if expression_type == ET_EXPRESSION:
+            self.asts = [parse(expression)]
+        else:
+            self.asts = parse_interpolated_str(expression)
         self.ctx = context
-        self.ast.bind('exp_change',self._change_chandler)
-        self.ast.watch(context)
+        for ast in self.asts:
+            ast.bind('exp_change',self._change_chandler)
+            ast.watch(context)
         self.evaluate()
         self._last_event_id = -1
 
@@ -45,11 +50,20 @@ class ExpObserver(EventMixin):
         return self._val
 
     def evaluate(self):
-        try:
-            self._val = self.ast.evaluate(self.ctx)
+        if self._exp_type == ET_EXPRESSION:
+            try:
+                self._val = self.asts[0].evaluate(self.ctx)
+                self._have_val = True
+            except:
+                self._have_val = False
+        else:
+            self._val = ""
+            for ast in self.asts:
+                try:
+                    self._val += ast.evaluate(self.ctx)
+                except:
+                    pass
             self._have_val = True
-        except:
-            self._have_val = False
 
 
 

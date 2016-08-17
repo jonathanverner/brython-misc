@@ -1,4 +1,5 @@
 from client.python_packages.lib.template.expobserver import ExpObserver
+from client.python_packages.lib.template.expression import ET_EXPRESSION, ET_INTERPOLATED_STRING
 from client.python_packages.lib.template.context import Context
 from client.tests.utils import TestObserver
 
@@ -17,8 +18,8 @@ class TestExpObserver(object):
         self.ctx = Context()
         self.ctx._clear()
 
-    def prepare(self,exp):
-        self.obs = ExpObserver(exp,self.ctx)
+    def prepare(self,exp, et = ET_EXPRESSION):
+        self.obs = ExpObserver(exp,self.ctx,expression_type=et)
         self.t = TestObserver(self.obs)
 
     def exec_test(self,old,new):
@@ -119,6 +120,15 @@ class TestExpObserver(object):
         self.exec_test(None,4)
         self.ctx.lst.pop()
         self.exec_test(4,4)
+
+    def test_string_interp(self):
+        self.ctx.name = "James"
+        self.prepare("My name is {{ surname }}, {{name}} {{ surname}}.",et=ET_INTERPOLATED_STRING)
+        self.obs.have_value() == True
+        assert self.obs.value() == "My name is , James ."
+
+        self.ctx.surname = "Bond"
+        self.exec_test("My name is , James .","My name is Bond, James Bond.")
 
 
 
