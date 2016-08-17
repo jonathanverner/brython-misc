@@ -1,5 +1,4 @@
 import client.python_packages.lib.template.observer as o
-from client.python_packages.lib.template.context import Context as Ctx
 from client.tests.utils import TestObserver
 
 class MockObj(object):

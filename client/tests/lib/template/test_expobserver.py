@@ -108,7 +108,7 @@ class TestExpObserver(object):
         self.ctx.a = 0
         self.prepare("lst[0][a]")
         self.obs.have_value() == True
-        self.obs.value() == 1
+        assert self.obs.value() == 1
 
         self.ctx.lst[1]=2
         self.exec_test(1,1)

@@ -8,7 +8,7 @@ class Context(object):
 
     def reset(self,dct):
         for k in self._dct.keys():
-            del self[k]
+            del self._dct[k]
         for k in dct:
             self[k] = dct[k]
 

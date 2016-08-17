@@ -11,7 +11,8 @@ conf = settings(__package__,strip_leading=1)
 
 @task
 def run():
-    local(' docker run --name gitolite -d -v $PWD/data/repos:/data -p 127.0.0.1:2222:22 derektamsen/gitserver')
+    local('docker start gitolite')
+    #local('docker run --name gitolite -d -v $PWD/data/repos:/data -p 127.0.0.1:2222:22 derektamsen/gitserver')
     
 @task
 def init():
