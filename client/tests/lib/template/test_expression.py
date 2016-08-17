@@ -318,7 +318,7 @@ def test_parse():
 
 
     # Test Complex Expressions
-    expr = '(1+2*a - 10)'
+    expr = '(1+2*obj.a - 10)'
     ast = exp.parse(expr)
     assert ast.evaluate(ctx) == 11
 
