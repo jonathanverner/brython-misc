@@ -123,15 +123,225 @@ class AttrDict(object):
         del self._attrs[key]
         self._elem.elt.removeAttribute(key)
 
+class Plugin(EventMixin):
+    def __init__(self,node, element):
+        self._owner = node
+        self._element = element
 
-class TemplateTag(EventMixin):
-    def __init__(self, dom_element,context):
-        self.attrs = AttrDict(dom_element,context)
-        self.context = context
-        self._elem = dom_element
-        self._interp_children = []
-        for ch in self._elem.children:
-            if ch.elt.nodeName == '#text':
-                self._interp_children.append(InterpolatedTextNode(ch,context))
+    def bind_ctx(self,context):
+        pass
+
+class TagPlugin(Plugin):
+    def __init__(self, node, element):
+        super().__init__(self,node,element)
+
+class AttrPlugin(Plugin):
+    def __init__(self,node,element):
+        super().__init__(self,node,element)
+
+class ErrorPlugin(Plugin):
+    def __init__(self,node,element,ex):
+        self._element <= html.SPAN(str(ex))
+
+class TextPlugin(Plugin):
+    def __init__(self,node,element):
+        super().__init__(node,element)
+        self._interp_str = InterpolatedStr(element.text)
+        self._interp_str.bind('change',self._change_handler)
+
+    def bind_ctx(self,ct):
+        self._interp_str.bind_ctx(ct)
+
+    def _change_handler(self,event):
+        self._node.text = event.data['value']
+
+class TplNode(EventMixin):
+    ATTR_PLUGINS = {}
+    TAG_PLUGINS = {}
+    PLUGIN_PREFIX='tpl-'
+
+    class FencePost:
+        pass
+
+    @classmethod
+    def register_plugin(cls,plugin_class):
+        plugin_name = getattr(plugin_class,'NAME',None) or plugin_class.__name__
+        plugin_name = plugin_name.upper().replace('_','-')
+        if issubclass(plugin_class,TagPlugin):
+           cls.TAG_PLUGINS[plugin_name] = plugin_class
+        else:
+            meta = {
+                'cls':plugin_class,
+                'attrs':plugin_class.__init__.__code__.co_varnames,
+                'name': plugin_name
+            }
+            meta['attrs'].remove('self')
+            cls.ATTR_PLUGINS[plugin_name]=meta
+
+    def __init__(self,dom_element,parent=None):
+        self._element = dom_element
+        self._context = None
+        self._plugins = []
+        self._tag_plugin = None
+        self._attrs = None
+        self._children = []
+        self._parent = parent
+        self._exclude_attrs = []
+
+        try:
+            if self._element.nodeName == '#text':
+                self._tag_plugin = TextPlugin(self,self._element)
             else:
-                self._interp_children.append(TemplateTag(ch,context))
+                canonical_tag_name = None
+                tag_args = []
+                for a in self._element.attributes:
+                    canonical_name = a.name[len(self.PLUGIN_PREFIX):].upper()
+                    if canonical_name in self.ATTR_PLUGINS:
+                        self._plugins.append(self.ATTR_PLUGINS[canonical_name](self,self._element,a.value))
+                        self._exclude_attrs.append(a.name)
+                    if canonical_name in self.TAG_PLUGINS:
+                        canonical_tag_name = canonical_name
+                        tag_args.append(a.value)
+                if canonical_tag_name is None:
+                    canonical_tag_name = self._element.nodeName[len(self.PLUGIN_PREFIX):]
+                if canonical_tag_name in self.TAG_PLUGINS:
+                    meta=self._tag_plugin = self.TAG_PLUGINS[canonical_tag_name]
+                    kwargs = {}
+                    for attr in meta['attributes']:
+                        try:
+                            kwargs[attr] = getattr(self._element,attr)
+                        except:
+                            pass
+                        self._exclude_attrs.append(attr)
+                    self._attrs = AttrDict(self._element,self._exclude_attrs)
+                    self._tag_plugin = meta['cls'](self,self._element,*tag_args,**kwargs)
+                for ch in self._element.children:
+                    self._children.append(TplNode(ch,self))
+        except Exception as ex:
+            self._tag_plugin = ErrorPlugin(self,self._element,ex)
+
+    def bind_ctx(self,context):
+        self._context = context
+        for p in self._plugins:
+            p.bind_ctx(self._context)
+        if self._tag_plugin:
+            self._tag_plugin.bind_ctx(self._context)
+        for ch in self._children:
+            if isinstance(ch,TplNode):
+                ch.bind_ctx(self._context)
+
+    def _remove_plugin(self,plugin_class):
+        plugs = []
+        for p in self._plugins:
+            if not isinstance(p,plugin_class):
+                plugs.append(p)
+        self._plugins = plugs
+
+    def clone(self):
+        cloned_element = self._element.clone()
+        return TplNode(cloned_element)
+
+    def append(self,node):
+        if node._parent is not None:
+            raise Exception("Node has a parent, cannot append.")
+        self._children.append(node)
+        node._parent = self
+        self._element <= node._element
+
+    def create_fence(self,node):
+        start = TplNode.FencePost()
+        end = TplNode.FencePost()
+        pos = self._children.index(node)
+        self._children.insert(pos,start)
+        self._children.insert(pos+2,end)
+
+    def cut(self,start,end):
+        s_pos = self._children.index(start)
+        e_pos = self._children.index(end)
+        for ch in self._children[s_pos+1:e_pos]:
+            if isinstance(ch,TplNode):
+                self._element.remove(ch._element)
+                ch._parent = None
+        del self._children[s_pos+1,e_pos]
+
+    def insert(self,start,end,nodes):
+        e_pos=self._children.index(end)
+        insert_before_elt = None
+        for ch in self._children[e_pos:]:
+            if isinstance(ch,TplNode):
+                insert_before_elt = ch._element
+                break
+        if insert_before_elt is None:
+            self._element <= [n._element for n in nodes]
+        else:
+            for n in nodes:
+                self._element.insertBefore(n._element,insert_before_elt)
+        for n in nodes:
+            self._children.insert(e_pos,n)
+
+
+class Style(AttrPlugin):
+    def __init__(self,node,element,style):
+        super().__init__(node,element)
+        pass
+TplNode.register_plugin(Style)
+
+
+class For(TagPlugin):
+    SPEC_RE = re.compile('^\s*for\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
+    COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
+
+    def __init__(self,node,element,loop_spec):
+        super().__init__(node,element)
+
+        m=For.SPEC_RE.match(loop_spec).groupdict()
+        self._var = m['loop_var']
+        self._exp,pos = parse(m['sequence_exp'],trailing_garbage_ok=True)
+        self._exp.bind('exp_change',self._change_chandler)
+        m = For.COND_RE.match(loop_spec[pos:])
+        if m:
+            self._cond = parse(m['condition'])
+        else:
+            self._cond = None
+
+        elt_copy = self._element.clone()
+        setattr(elt_copy,TplNode.PLUGIN_PREFIX+'for',False) # Deletes the for attribute
+        self._template_node = TplNode(elt_copy)
+        self._parent_node = self._owner._parent
+        self._before,self._after=self._owner._parent.create_fence(self._owner)
+
+    def bind_ctx(self,ctx):
+        self._ctx = ctx
+        self._exp.watch(self._ctx)
+        self._update()
+
+    def _update(self):
+        self._lst = self._exp.evaluate(self._ctx)
+        self._clones=[]
+        self._parent_node.cut(self._before,self._after)
+        for item in self._lst:
+            c=Context({self._var:item})
+            if self._cond is None or self._cond.evaluate(c):
+                clone = self._template_node.clone()
+                clone.bind_ctx(c)
+                self._clones.append(clone)
+        self._parent_node.insert(self._before,self._after,self._clones)
+
+    def _change_chandler(self,ev):
+        self._update()
+
+TplNode.register_plugin(For)
+
+class Include(TagPlugin):
+    def __init__(self, node, element, name):
+        super().__init__(node,element)
+        pass
+TplNode.register_plugin(Include)
+
+class Template(TagPlugin):
+    def __init__(self, node, element, name):
+        super().__init__(node,element)
+        pass
+TplNode.register_plugin(Template)
+
+

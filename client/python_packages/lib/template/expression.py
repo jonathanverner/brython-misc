@@ -6,6 +6,8 @@
       - chaining bool operators, e.g. `1 <= 2 < 3` is not supported
 
       - Tuples are not supported
+
+      - dict constants are not supported
 """
 
 ET_EXPRESSION = 0
@@ -706,11 +708,18 @@ def parse_interpolated_str(tpl_expr):
     if len(tpl_expr) > last_pos:
         ret.append(ConstNode(tpl_expr[last_pos:]))
     return ret
-    token_stream = tokenize(expr)
-    ast,etok,pos = _parse(token_stream)
-    return ast
 
-def _parse(token_stream,end_tokens=[]):
+
+
+def parse(expr,trailing_garbage_ok=False):
+    token_stream = tokenize(expr)
+    ast,etok,pos = _parse(token_stream,trailing_garbage_ok=trailing_garbage_ok)
+    if trailing_garbage_ok:
+        return ast,pos
+    else:
+        return ast
+
+def _parse(token_stream,end_tokens=[],trailing_garbage_ok=False):
     """
         Parses the token_stream, optionally stopping when an
         unconsumed token from end_tokens is found. Returns
@@ -779,7 +788,13 @@ def _parse(token_stream,end_tokens=[]):
                 raise Exception("Expecting '(' at "+str(pos))
             op_stack.pop()
         else:
-            raise Exception("Unexpected token "+str((token,val))+" at "+str(pos))
+            if trailing_garbage_ok:
+                partial_eval(arg_stack,op_stack)
+                if len(arg_stack) > 2 or len(op_stack) > 0:
+                    raise Exception("Invalid expression, leftovers: args:"+str(arg_stack)+"ops:"+str(op_stack))
+                return arg_stack[0],None,pos
+            else:
+                raise Exception("Unexpected token "+str((token,val))+" at "+str(pos))
         if not prev_token_set:
             prev_token = token
         else:
