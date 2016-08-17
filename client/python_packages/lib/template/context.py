@@ -10,10 +10,15 @@ class Context(object):
         self._saved = {}
 
     def reset(self,dct):
-        for k in self._dct.keys():
-            del self._dct[k]
-        for k in dct:
-            self[k] = dct[k]
+        keys = list(self._dct.keys())
+        for k in keys:
+            delattr(self,k)
+        if isinstance(dct,dict):
+            for k in dct.keys():
+                setattr(self,k,dct[k])
+        elif isinstance(dct,Context):
+            for k in dct._dct.keys():
+                setattr(self,k,getattr(dct,k))
 
     def __iter__(self):
         return iter(self._dct)
