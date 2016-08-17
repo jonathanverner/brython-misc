@@ -49,8 +49,9 @@ class AttrDict(object):
         self._exclude = exclude
         for a in self._elem.attributes:
             if not a.name in exclude:
-                val = a.value
                 self._attrs[a.name] = InterpolatedAttr(a,self._ctx)
+            else:
+                self._attrs[a.name] = a
 
     @property
     def context(self):
@@ -59,8 +60,11 @@ class AttrDict(object):
     @context.setter
     def context(self,ct):
         self._ctx = ct
-        for (a,data) in self._attrs.items():
-            data.context = ct
+        for (a,interp_attr) in self._attrs.items():
+            interp_attr.context = ct
+
+    def bind_ctx(self,ct):
+        self.context = ct
 
     def __iter__(self):
         return iter(self._attrs)
@@ -93,7 +97,7 @@ class AttrDict(object):
         self._elem.elt.removeAttribute(key)
 
 class Plugin(EventMixin):
-    def __init__(self,node, element):
+    def __init__(self,node,element):
         self._owner = node
         self._element = element
 
@@ -102,14 +106,15 @@ class Plugin(EventMixin):
 
 class TagPlugin(Plugin):
     def __init__(self, node, element):
-        super().__init__(self,node,element)
+        super().__init__(node,element)
 
 class AttrPlugin(Plugin):
-    def __init__(self,node,element):
-        super().__init__(self,node,element)
+    def __init__(self,node,element,value):
+        super().__init__(node,element)
 
 class ErrorPlugin(Plugin):
     def __init__(self,node,element,ex):
+        super().__init__(node,element)
         self._element <= html.SPAN(str(ex))
 
 class TextPlugin(Plugin):
@@ -122,7 +127,10 @@ class TextPlugin(Plugin):
         self._observer.context = ct
 
     def _change_handler(self,event):
-        self._node.text = event.data['value']
+        self._element.text = event.data['new']
+
+    def __repr__(self):
+        return "TextPlugin('"+self._observer._exp_src.replace("\n","\\n")+"') = '"+self._element.text.replace("\n","\\n")+"'"
 
 class TplNode(EventMixin):
     ATTR_PLUGINS = {}
@@ -141,7 +149,7 @@ class TplNode(EventMixin):
         else:
             meta = {
                 'cls':plugin_class,
-                'attrs':plugin_class.__init__.__code__.co_varnames,
+                'attrs':list(plugin_class.__init__.__code__.co_varnames),
                 'name': plugin_name
             }
             meta['attrs'].remove('self')

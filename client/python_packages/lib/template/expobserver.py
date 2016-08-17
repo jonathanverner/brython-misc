@@ -3,7 +3,7 @@ from lib.events import EventMixin
 
 class ExpObserver(EventMixin):
 
-    def __init__(self,expression,context, expression_type=ET_EXPRESSION):
+    def __init__(self,expression,context,expression_type=ET_EXPRESSION):
         super().__init__()
         self._exp_src = expression
         self._exp_type = expression_type
@@ -14,7 +14,7 @@ class ExpObserver(EventMixin):
         self.ctx = context
         for ast in self.asts:
             ast.bind('exp_change',self._change_chandler)
-            ast.watch(context)
+            ast.watch(self.ctx)
         self.evaluate()
         self._last_event_id = -1
 

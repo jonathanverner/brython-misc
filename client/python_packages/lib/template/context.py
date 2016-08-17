@@ -46,6 +46,11 @@ class Context(object):
         else:
             del self._dct[attr]
 
+    def __repr__(self):
+        return repr(self._dct)
+
+    def __str__(self):
+        return str(self._dct)
 
     def _get(self, name):
         return self._dct[name]
