@@ -6,57 +6,26 @@ from .context import Context
 
 import re
 
-class InterpolatedStr(EventMixin):
-    def __init__(self,string):
-        super().__init__()
-        self._ctx = Context()
-        self._val = None
-        self.src = string
-        self.observer = ExpObserver(self.src,self._ctx,expression_type=ET_INTERPOLATED_STRING)
-        self.observer.bind('change',self._change_handler)
-
-    def bind_ctx(self,ctx):
-        self.context = ctx
-
-    @property
-    def context(self):
-        return self.observer.context
-
-    @context.setter
-    def context(self,ct):
-        self.observer.context = ct
-
-    def value(self):
-        return self._val
-
-    def update(self):
-        self._val = self.observer.value()
-
-    def _change_handler(self,event):
-        self.update()
-        self.emit('change',{'value':self.value()})
-
 class InterpolatedAttr(object):
-    def __init__(self,attr,context):
-        self._interpolated = InterpolatedStr(attr.value,context)
+    def __init__(self,attr,context=None):
+        if context is None:
+            context=Context()
+        self._observer = ExpObserver(attr.value,context,expression_type=ET_INTERPOLATED_STRING)
+        self._observer.bind('change',self._change_handler)
         self._attr=attr
-        self._interpolated.bind('change',self._change_handler)
-        self._attr.value=self._interpolated.value()
-        self._ctx = context
+        self._attr.value=self._observer.value()
 
     @property
     def context(self):
-        return self._ctx
+        return self._observer.context
 
     @context.setter
     def context(self,ct):
-        self._ctx = ct
-        if self._interpolated is not None:
-            self._interpolated.context = ct
+        self._observer.context = ct
 
     @property
     def src(self):
-        return self._interpolated.src
+        return self._observer._exp_src
 
     @property
     def value(self):
@@ -64,13 +33,13 @@ class InterpolatedAttr(object):
 
     @value.setter
     def value(self,value):
-        self._interpolated.unbind()
-        self._interpolated = InterpolatedStr(value,self.context)
-        self._interpolated.bind('change',self._change_handler)
-        self._attr.value = self._interpolated.value()
+        self._observer.unbind()
+        self._observer = ExpObserver(value,self.context,expression_type=ET_INTERPOLATED_STRING)
+        self._observer.bind('change',self._change_handler)
+        self._attr.value = self._observer.value()
 
     def _change_handler(self,event):
-        self._attr.value = event.data['value']
+        self._attr.value = event.data['new']
 
 class AttrDict(object):
     def __init__(self,element,exclude=[]):
@@ -146,11 +115,11 @@ class ErrorPlugin(Plugin):
 class TextPlugin(Plugin):
     def __init__(self,node,element):
         super().__init__(node,element)
-        self._interp_str = InterpolatedStr(element.text)
-        self._interp_str.bind('change',self._change_handler)
+        self._observer = ExpObserver(element.text,Context(),expression_type=ET_INTERPOLATED_STRING)
+        self._observer.bind('change',self._change_handler)
 
     def bind_ctx(self,ct):
-        self._interp_str.bind_ctx(ct)
+        self._observer.context = ct
 
     def _change_handler(self,event):
         self._node.text = event.data['value']
