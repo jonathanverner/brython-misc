@@ -13,7 +13,7 @@ class Context(object):
             self[k] = dct[k]
 
     def __iter__(self):
-        return self._dct.__iter__
+        return iter(self._dct)
 
     def __getattr__(self,attr):
         if attr in self._dct:
