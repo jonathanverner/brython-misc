@@ -210,6 +210,8 @@ class TplNode(EventMixin):
         for ch in self._children:
             if isinstance(ch,TplNode):
                 ch.bind_ctx(self._context)
+        if self._attrs is not None:
+            self._attrs.context=self._context
 
     def _remove_plugin(self,plugin_class):
         plugs = []
