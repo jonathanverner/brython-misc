@@ -1,47 +1,36 @@
 from lib.events import EventMixin
 from browser import html
 from .expobserver import ExpObserver
+from .expression import ET_INTERPOLATED_STRING, parse
+from .context import Context
+
 import re
 
 class InterpolatedStr(EventMixin):
-    def __init__(self,string,ctx):
+    def __init__(self,string):
         super().__init__()
-        self.pieces = []
-        self._ctx = ctx
+        self._ctx = Context()
         self._val = None
         self.src = string
-        if '{{' in self.src:
-            for p in self.src.split('{{')[1:]:
-                if '}}' not in p:
-                    self.pieces.append('{{'+p)
-                else:
-                    exp = '}}'.join(p.split('}}')[:-1])
-                    observer = ExpObserver(exp,ctx)
-                    observer.bind('change',self._change_handler)
-                    self.pieces.append(observer)
-        else:
-            self.pieces.append(self.src)
-        self.update()
+        self.observer = ExpObserver(self.src,self._ctx,expression_type=ET_INTERPOLATED_STRING)
+        self.observer.bind('change',self._change_handler)
+
+    def bind_ctx(self,ctx):
+        self.context = ctx
 
     @property
     def context(self):
-        return self._ctx
+        return self.observer.context
 
     @context.setter
     def context(self,ct):
-        self._ctx.reset(ct)
+        self.observer.context = ct
 
     def value(self):
         return self._val
 
     def update(self):
-        self._val = ""
-        for p in self.pieces:
-            if isinstance(p,ExpObserver):
-                if p.have_value():
-                    self._val += str(p.value())
-            else:
-                self._val += p
+        self._val = self.observer.value()
 
     def _change_handler(self,event):
         self.update()
@@ -56,16 +45,6 @@ class InterpolatedAttr(object):
         self._ctx = context
 
     @property
-    def value(self):
-        return self._attr.value
-
-    @value.setter
-    def value(self,val):
-        self._interpolated.unbind()
-        self._interpolated = None
-        self._attr.value = val
-
-    @property
     def context(self):
         return self._ctx
 
@@ -75,54 +54,34 @@ class InterpolatedAttr(object):
         if self._interpolated is not None:
             self._interpolated.context = ct
 
-
     @property
-    def interpolated(self):
+    def src(self):
         return self._interpolated.src
 
-    @interpolated.setter
-    def interpolated(self,value):
+    @property
+    def value(self):
+        return self._attr.value
+
+    @value.setter
+    def value(self,value):
         self._interpolated.unbind()
         self._interpolated = InterpolatedStr(value,self.context)
         self._interpolated.bind('change',self._change_handler)
         self._attr.value = self._interpolated.value()
 
-    def is_interpolated(self):
-        return self._interpolated is not None
-
     def _change_handler(self,event):
         self._attr.value = event.data['value']
 
-class InterpolatedTextNode(object):
-    def __init__(self,node,context):
-        self._int = InterpolatedStr(node.text,context)
-        self._int.bind('change',self._change_handler)
-        self._node = node
-        self._ctx = context
-
-    @property
-    def context(self):
-        return self._ctx
-
-    @context.setter
-    def context(self,ct):
-        self._int.context = ct
-        self._ctx = ct
-
-    def _change_handler(self,event):
-        self._node.text = event.data['value']
-
 class AttrDict(object):
-    def __init__(self,element,context=None,interpolate = True):
+    def __init__(self,element,exclude=[]):
         self._attrs = {}
-        self._ctx = context
+        self._ctx = Context()
         self._elem = element
+        self._exclude = exclude
         for a in self._elem.attributes:
-            val = a.value
-            self._attrs[a.name] = InterpolatedAttr(a,self._ctx)
-            if interpolate is False or (interpolate is not True and a.name not in interpolate):
-                self._attrs[a.name].value = val
-        self._interpolate = interpolate
+            if not a.name in exclude:
+                val = a.value
+                self._attrs[a.name] = InterpolatedAttr(a,self._ctx)
 
     @property
     def context(self):
@@ -133,20 +92,6 @@ class AttrDict(object):
         self._ctx = ct
         for (a,data) in self._attrs.items():
             data.context = ct
-
-    @property
-    def interpolate(self):
-        ret = []
-        for (attr_name,data) in self._attrs.items():
-            if data.is_interpolated():
-                ret.append(attr_name)
-        return ret
-
-    @interpolate.setter
-    def interpolate(self,dct=True):
-        for (attr_name,data) in self._attrs.items():
-            if (dct is True or attr_name in dct) and not data.is_interpolated():
-                data.interpolated = data.value
 
     def __iter__(self):
         return iter(self._attrs)
@@ -161,11 +106,22 @@ class AttrDict(object):
         return self._attrs[key].value
 
     def __setitem__(self, key, value):
-        a = self._attrs[key]
-        if a.is_interpolated():
-            a.interpolated = value
+        if key in self._attrs:
+            self._attrs[key].value = value
         else:
-            a.value = value
+            if key not in self._exclude:
+                setattr(self._elem,key,value)
+                for attr in self._elem.attributes:
+                    if attr.name == key:
+                        self._attrs[key] = InterpolatedAttr(attr,self._ctx)
+                        return
+                raise Exception("Attribute '"+key+"' cannot be set.")
+            else:
+                raise Exception("Attribute '"+key+"' cannot be set.")
+
+    def __delitem__(self,key):
+        del self._attrs[key]
+        self._elem.elt.removeAttribute(key)
 
 
 class TemplateTag(EventMixin):
