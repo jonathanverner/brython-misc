@@ -169,6 +169,7 @@ class TplNode(EventMixin):
         self._children = []
         self._parent = parent
         self._exclude_attrs = []
+        self._orig_clone = self._element.clone()
 
         if self._element.nodeName == '#text':
             self._tag_plugin = TextPlugin(self,self._element)
@@ -228,7 +229,7 @@ class TplNode(EventMixin):
         self._plugins = plugs
 
     def clone(self):
-        cloned_element = self._element.clone()
+        cloned_element = self._orig_clone.clone()
         return TplNode(cloned_element)
 
     def append(self,node):
