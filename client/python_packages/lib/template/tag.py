@@ -165,37 +165,41 @@ class TplNode(EventMixin):
         self._parent = parent
         self._exclude_attrs = []
 
-        try:
-            if self._element.nodeName == '#text':
-                self._tag_plugin = TextPlugin(self,self._element)
-            else:
-                canonical_tag_name = None
-                tag_args = []
-                for a in self._element.attributes:
-                    canonical_name = a.name[len(self.PLUGIN_PREFIX):].upper()
-                    if canonical_name in self.ATTR_PLUGINS:
+        if self._element.nodeName == '#text':
+            self._tag_plugin = TextPlugin(self,self._element)
+        else:
+            canonical_tag_name = None
+            tag_args = []
+            for a in self._element.attributes:
+                canonical_name = a.name[len(self.PLUGIN_PREFIX):].upper()
+                if canonical_name in self.ATTR_PLUGINS:
+                    try:
                         self._plugins.append(self.ATTR_PLUGINS[canonical_name](self,self._element,a.value))
-                        self._exclude_attrs.append(a.name)
-                    if canonical_name in self.TAG_PLUGINS:
-                        canonical_tag_name = canonical_name
-                        tag_args.append(a.value)
-                if canonical_tag_name is None:
-                    canonical_tag_name = self._element.nodeName[len(self.PLUGIN_PREFIX):]
-                if canonical_tag_name in self.TAG_PLUGINS:
-                    meta=self._tag_plugin = self.TAG_PLUGINS[canonical_tag_name]
-                    kwargs = {}
-                    for attr in meta['attributes']:
-                        try:
-                            kwargs[attr] = getattr(self._element,attr)
-                        except:
-                            pass
-                        self._exclude_attrs.append(attr)
-                    self._attrs = AttrDict(self._element,self._exclude_attrs)
+                    except Exception as ex:
+                        self._tag_plugin = ErrorPlugin(self,self._element,ex)
+                    self._exclude_attrs.append(a.name)
+                if canonical_name in self.TAG_PLUGINS:
+                    canonical_tag_name = canonical_name
+                    tag_args.append(a.value)
+            if canonical_tag_name is None:
+                canonical_tag_name = self._element.nodeName[len(self.PLUGIN_PREFIX):]
+            if canonical_tag_name in self.TAG_PLUGINS:
+                meta=self._tag_plugin = self.TAG_PLUGINS[canonical_tag_name]
+                kwargs = {}
+                for attr in meta['attributes']:
+                    try:
+                        kwargs[attr] = getattr(self._element,attr)
+                    except:
+                        pass
+                    self._exclude_attrs.append(attr)
+                try:
                     self._tag_plugin = meta['cls'](self,self._element,*tag_args,**kwargs)
-                for ch in self._element.children:
-                    self._children.append(TplNode(ch,self))
-        except Exception as ex:
-            self._tag_plugin = ErrorPlugin(self,self._element,ex)
+                except Exception as ex:
+                        self._tag_plugin = ErrorPlugin(self,self._element,ex)
+            self._attrs = AttrDict(self._element,self._exclude_attrs)
+            for ch in self._element.children:
+                self._children.append(TplNode(ch,self))
+
 
     def bind_ctx(self,context):
         self._context = context
