@@ -282,6 +282,7 @@ class IdentNode(ExpNode):
 
 
     def watch(self, context):
+        self.stop_forwarding(only_event='change')
         if not self._const:
             self._watched_ctx = context
             observe(context,observer=self)
@@ -532,6 +533,7 @@ class OpNode(ExpNode):
         return self._last_val
 
     def watch(self,context):
+        self.stop_forwarding(only_event='change')
         self._watched_ctx = context
         if self._opstr not in self.UNARY:
             self._larg.watch(context)
