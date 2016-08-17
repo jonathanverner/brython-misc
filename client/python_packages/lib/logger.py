@@ -24,7 +24,7 @@ class Logger:
         self.do_log(*args,severity = Logger.SEVERITY_INFO)
 
     def warn(self,*args):
-        self.do_log(*args,severity = Logger.SEVERITY_INFO)
+        self.do_log(*args,severity = Logger.SEVERITY_WARN)
 
     def error(self,*args):
         self.do_log(*args,severity = Logger.SEVERITY_ERROR)

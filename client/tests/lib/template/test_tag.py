@@ -1,7 +1,5 @@
 from unittest.mock import patch
-import sys
-sys.modules['browser'] = __import__('client.tests.brython.browser')
-sys.modules['browser'].html = __import__('client.tests.brython.browser.html')
+import client.tests.brython.browser
 from client.python_packages.lib.template.context import Context
 from client.python_packages.lib.template.tag import InterpolatedAttr, AttrDict
 
