@@ -24,7 +24,19 @@ class ExpObserver(EventMixin):
 
     @context.setter
     def context(self,ctx):
-        self.ctx.reset(ctx)
+        self.ctx = ctx
+        for ast in self.asts:
+            ast.watch(self.ctx)
+        event_data = {
+            'exp':self._exp_src,
+            'observer':self,
+        }
+        if self._have_val:
+            event_data['old']=self._val
+        self.evaluate()
+        if self._have_val:
+            event_data['new']=self._val
+        self.emit('change',event_data)
 
     def _change_chandler(self,event):
         if event.data['source_id'] == self._last_event_id:
