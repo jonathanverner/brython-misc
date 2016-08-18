@@ -13,8 +13,6 @@
 ET_EXPRESSION = 0
 ET_INTERPOLATED_STRING = 1
 
-import re
-
 from lib.events import EventMixin
 from .observer import observe
 
@@ -40,27 +38,6 @@ T_EQUAL = 18
 T_KEYWORD = 19          # Warning: This does not include True,False,None; these fall in the T_IDENTIFIER category, also this includes 'in' which can, in certain context, be an operator
 T_UNKNOWN = 20
 
-IDENTIFIER_INNERCHAR_RE = re.compile('[a-z_$0-9]',re.IGNORECASE)
-KEYWORD_RE = re.compile('(for)[^a-z_$].*|(if)[^a-z_$].*|(in)[^a-z_$].*')
-IS_NOT_RE = re.compile('^(is\s*not).*$')
-match_token_res = [
-    (T_SPACE,re.compile('\s.*')),
-    (T_NUMBER,re.compile('[0-9].*')),
-    (T_LBRACKET,re.compile('\[.*')),
-    (T_RBRACKET,re.compile('\].*')),
-    (T_LPAREN,re.compile('\(.*')),
-    (T_RPAREN,re.compile('\).*')),
-    (T_LBRACE,re.compile('{')),
-    (T_RBRACE,re.compile('}')),
-    (T_DOT,re.compile('\..*')),
-    (T_COMMA,re.compile(',.*')),
-    (T_COLON,re.compile(':.*')),
-    (T_EQUAL,re.compile('=[^=].*')),
-    (T_OPERATOR,re.compile('([-+*/<>%].*)|(==.*)|(!=.*)|(<=.*)|(>=.*)|(or[^a-z_$])|(and[^a-z_$])|(is[^a-z_$])|(not[^a-z_$])')),
-    (T_STRING,re.compile('["\'].*')),
-    (T_KEYWORD,re.compile('(for[^a-z_$])|(if[^a-z_$].*)|(in[^a-z_$].*)')),
-    (T_IDENTIFIER,re.compile('[a-z_$].*',re.IGNORECASE)),
-]
 OP_PRIORITY = {
     '(':-2,    # Parenthesis have lowest priority so that we always stop partial evaluation when
                # reaching a parenthesis
@@ -84,13 +61,84 @@ OP_PRIORITY = {
     '.':5      # Attribute access has highest priority (e.g. a.c**2 is not a.(c**2), and a.func(b) is not a.(func(b)))
 }
 
+#match_token_res = [
+    #(T_SPACE,re.compile('\s.*')),
+    #(T_NUMBER,re.compile('[0-9].*')),
+    #(T_LBRACKET,re.compile('\[.*')),
+    #(T_RBRACKET,re.compile('\].*')),
+    #(T_LPAREN,re.compile('\(.*')),
+    #(T_RPAREN,re.compile('\).*')),
+    #(T_LBRACE,re.compile('{')),
+    #(T_RBRACE,re.compile('}')),
+    #(T_DOT,re.compile('\..*')),
+    #(T_COMMA,re.compile(',.*')),
+    #(T_COLON,re.compile(':.*')),
+    #(T_EQUAL,re.compile('=[^=].*')),
+    #(T_OPERATOR,re.compile('([-+*/<>%].*)|(==.*)|(!=.*)|(<=.*)|(>=.*)|(or[^a-z_$])|(and[^a-z_$])|(is[^a-z_$])|(not[^a-z_$])')),
+    #(T_STRING,re.compile('["\'].*')),
+    #(T_KEYWORD,re.compile('(for[^a-z_$])|(if[^a-z_$].*)|(in[^a-z_$].*)')),
+    #(T_IDENTIFIER,re.compile('[a-z_$].*',re.IGNORECASE)),
+#]
 def token_type(start_chars):
     """ Identifies the next token type based on the
         next four characters """
-    for tp,pat in match_token_res:
-        if pat.match(start_chars):
-            return tp
-    return T_UNKNOWN
+    first_char = start_chars[0]
+    if first_char == ' ' or first_char == "\t" or first_char == "\n":
+        return T_SPACE
+    elif first_char == '[':
+        return T_LBRACKET
+    elif first_char == ']':
+        return T_RBRACKET
+    elif first_char == '(':
+        return T_LPAREN
+    elif first_char == ')':
+        return T_RPAREN
+    elif first_char == '{':
+        return T_LBRACE
+    elif first_char == '}':
+        return T_RBRACE
+    elif first_char == '.':
+        return T_DOT
+    elif first_char == ',':
+        return T_COMMA
+    elif first_char == ':':
+        return T_COLON
+    elif first_char == '=' and start_chars[1] != '=':
+        return T_EQUAL
+    elif first_char == "'" or first_char == '"':
+        return T_STRING
+    fo=ord(first_char)
+    if fo >= 48 and fo <=57:
+        return T_NUMBER
+    l = len(start_chars)
+    if ( l >= 2):
+        twochars = start_chars[:2]
+        if first_char in "-+*/<>%" or twochars in ['==','!=','<=','>=']:
+            return T_OPERATOR
+        if l>=3:
+            o=ord(start_chars[2])
+            if (twochars == 'or' or twochars == 'is') and (o > 122 or o < 65 or o == 91):
+                return T_OPERATOR
+            elif (twochars == 'in' or twochars == 'if') and (o > 122 or o < 65 or o == 91):
+                return T_KEYWORD
+            if (l >= 4):
+                o=ord(start_chars[3])
+                threechars = start_chars[:3]
+                if (threechars == 'and' or threechars == 'not') and (o > 122 or o < 65 or o == 91):
+                    return T_OPERATOR
+                elif (threechars == 'for') and (o > 122 or o < 65 or o == 91):
+                    return T_KEYWORD
+    if (fo >= 65 and fo <=90) or (fo>=97 and fo<=122) or first_char == '_' or first_char == '$':
+        return T_IDENTIFIER
+    else:
+        return T_UNKNOWN
+
+    # Turns out that the following was too slow in javascript
+    # due to using regular expressions
+    #
+    # for tp,pat in match_token_res:
+    #    if pat.match(start_chars):
+    #            return tp
 
 def parse_number(expr,pos):
     """ Parses a number """
@@ -150,11 +198,16 @@ def parse_string(expr,pos):
         raise Exception("String is missing end quote: "+end_quote)
     return ret, pos+1
 
+#IDENTIFIER_INNERCHAR_RE = re.compile('[a-z_$0-9]',re.IGNORECASE)
 def parse_identifier(expr,pos):
     """ Parses an identifier. """
     ret = expr[pos]
     pos = pos + 1
-    while pos < len(expr) and IDENTIFIER_INNERCHAR_RE.match(expr[pos]):
+    # while pos < len(expr) and IDENTIFIER_INNERCHAR_RE.match(expr[pos]):
+    while pos < len(expr):
+        o = ord(expr[pos])
+        if not ((o >=48 and o <=57) or (o>=65 and o <=90) or (o>=97 and o <=122) or o==36 or o == 95):
+            break
         ret += expr[pos]
         pos = pos + 1
     return ret, pos
@@ -200,11 +253,23 @@ def tokenize(expr):
             elif expr[pos] == 'o':
                 yield (T_OPERATOR,'or',pos+2)
                 pos = pos + 2
-            elif expr[pos] == 'i':
-                match = IS_NOT_RE.match(expr[pos:])
-                if match:
-                    yield (T_OPERATOR,'is not',pos+len(match.groups()[0]))
-                    pos = pos + len(match.groups()[0])
+            elif expr[pos] == 'i' and expr[pos+1]=='s':
+                p=pos+2
+                l=len(expr)
+                while p<l and expr[p] == ' ' or expr[p] == '\t' or expr[p] == '\n':
+                    p+=1
+                if expr[p:p+3] == 'not':
+                    if p+3 > l:
+                        yield (T_OPERATOR,'is not',p+3)
+                        pos = p+3
+                    else:
+                        o = ord(expr[p+3])
+                        if ((o < 48 or o >57) and (o<65 or o >90) and (o<97 or o >122)):
+                            yield (T_OPERATOR,'is not',p+3)
+                            pos = p+3
+                        else:
+                            yield (T_OPERATOR,'is',pos+2)
+                            pos = pos + 2
                 else:
                     yield (T_OPERATOR,'is',pos+2)
                     pos = pos + 2
@@ -218,10 +283,23 @@ def tokenize(expr):
                 yield (T_OPERATOR,expr[pos],pos+1)
                 pos = pos + 1
         elif tokentype == T_KEYWORD:
-            match = KEYWORD_RE.match(expr[pos:pos+4])
-            kwd = match.groups()[0] or match.groups()[1] or match.groups()[2]
-            yield (tokentype,kwd,pos+len(kwd))
-            pos = pos + len(kwd)
+            # KEYWORD_RE = re.compile('(for)[^a-z_$].*|(if)[^a-z_$].*|(in)[^a-z_$].*')
+            # Regular expressions are too slow and here they are overkill
+            #
+            # match = KEYWORD_RE.match(expr[pos:pos+4])
+            # kwd = match.groups()[0] or match.groups()[1] or match.groups()[2]
+            # yield (tokentype,kwd,pos+len(kwd))
+            # pos = pos + len(kwd)
+            if expr[pos] == 'f':
+                yield (tokentype,'for',pos+3)
+                pos += 3
+            elif expr[pos+1] == 'f':
+                yield (tokentype,'if',pos+2)
+                pos += 2
+            else:
+                yield (tokentype,'in',pos+2)
+                pos += 2
+
         else:
             yield (tokentype,expr[pos],pos+1)
             pos = pos+1
