@@ -323,15 +323,18 @@ class For(TagPlugin):
             self._lst = []
         self._clones=[]
         self._parent_node.cut(self._before,self._after)
-        for item in self._lst:
-            c=Context({self._var:item})
-            try:
-                if self._cond is None or self._cond.evaluate(c):
-                    clone = self._template_node.clone()
-                    clone.bind_ctx(c)
-                    self._clones.append(clone)
-            except Exception as ex:
-                logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
+        try:
+            for item in self._lst:
+                c=Context({self._var:item})
+                try:
+                    if self._cond is None or self._cond.evaluate(c):
+                        clone = self._template_node.clone()
+                        clone.bind_ctx(c)
+                        self._clones.append(clone)
+                except Exception as ex:
+                    logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
+        except Exception() as ex:
+            logger.warn("Exception",ex,"when iterating over list",self._lst)
         self._parent_node.insert(self._before,self._after,self._clones)
 
     def _change_chandler(self,ev):
