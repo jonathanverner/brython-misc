@@ -214,6 +214,11 @@ class DictProxy(dict):
 
 def observe(obj,observer=None,ignore_errors=False):
     if not hasattr(obj,'_obs____'):
+        if type(obj) in [str,int,dict,list,tuple,set,type(None),bool]:
+            if not ignore_errors:
+                raise Exception("Cannot observe primitive types:")
+            else:
+                return None
         try:
             if hasattr(obj,'__setitem__'):
                 extend_instance(obj,ArrayMixin)
