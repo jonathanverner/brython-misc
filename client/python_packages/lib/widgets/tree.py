@@ -1,4 +1,4 @@
-from lib.template.tag import TagPlugin, TplNode
+from lib.template.tag import TagPlugin, TplNode, T_EXPRESSION
 
 class Tree(TagPlugin):
     """

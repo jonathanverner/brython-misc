@@ -34,7 +34,7 @@
         var onLoadHandler = function() { 
             System.import("primeng/primeng").then(function(val) {
                 primeng = val;
-                brython(1)
+                brython({'debug':1,'profile':2,'profile_start':false});
             });
         }
     </script>

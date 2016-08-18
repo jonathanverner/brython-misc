@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <title>Angular 2 QuickStart JS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/base.css">
+
+    <script>
+        var primeng;
+        var onLoadHandler = function() {
+            brython({debug:0,profile:0})
+        }
+    </script>
+
+    <!-- BRYTHON -->
+    <link rel="pythonpath" href="app" />
+    <link rel="pythonpath" href="pyjs_packages" hreflang="js" />
+    <link rel="pythonpath" href="python_packages" hreflang="py" />
+    <script src="bower_components/brython-latest/www/src/brython_dist.js"></script>
+
+<script type="text/python">
+from browser import document as doc, html, console
+from lib.template.tag import TplNode
+from lib.template.context import Context
+
+import time
+start = time.time()
+ctx = Context()
+ctx.name="Jonathan"
+t = TplNode(doc['test'])
+end = time.time()
+console.log("Time to parse template",end-start)
+start = time.time()
+t.bind_ctx(ctx)
+end = time.time()
+console.log("Time to parse bind template",end-start)
+start = time.time()
+ctx.colours=['gray','green','black','red']
+end = time.time()
+console.log("Time to instantiate for-template",end-start)
+</script>
+<!--ctx = Context()
+ctx.name="Jonathan"
+t = TplNode(doc['test'])
+t.bind_ctx(ctx)
+__profile__.start()
+for i in range(10):
+        ctx.colours=[]
+        ctx.colours=['gray','green','black','red']
+__profile__.stop()
+calls = dict(__profile__.calls)
+callcount = dict(__profile__.callcount)
+callers = dict(__profile__.callers)
+agg = {k:(callcount[k],calls[k],calls[k]/callcount[k]) for k in calls.keys()}
+sagg = sorted(agg.items(),key=lambda x:x[1][2],reverse=True)
+console.log(slagg[:10])-->
+
+  </head>
+
+
+
+
+
+  <!-- 3. Display the application -->
+<body onload="onLoadHandler()">
+
+<div id='test' class="{{ ' '.join(classes) }}">
+    Ahoj {{ name }} {{ surname }}!
+    <ul>
+        <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>
+    </ul>
+</div>
+
+</body>
+
+</html>
