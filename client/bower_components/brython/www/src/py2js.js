@@ -1661,8 +1661,8 @@ function $ContinueCtx(context){
 }
 
 function $DebuggerCtx(context){
-    // Class for keyword "continue"
-    this.type = 'continue'
+    // Class for keyword "debugger"
+    this.type = 'debugger'
     this.parent = context
     context.tree[context.tree.length]=this
 
