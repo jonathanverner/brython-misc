@@ -344,11 +344,16 @@ class ConstNode(ExpNode):
 
 
 class IdentNode(ExpNode):
-    """ Node representing an identifier or one of the predefined constants True, False, None"""
+    """ Node representing an identifier or one of the predefined constants True, False, None, str, int, len.
+        (we don't allow overriding str, int and len)
+    """
     CONSTANTS = {
         'True':True,
         'False':False,
-        'None':None
+        'None':None,
+        'str':str,
+        'int':int,
+        'len':len
     }
     BUILTINS = {
         'str':str,
