@@ -1,4 +1,5 @@
 from browser import console
+from time import time
 
 class Logger:
     SEVERITY_DEBUG = 0
@@ -41,7 +42,7 @@ class Logger:
             self._print_log(*args)
 
     def _print_log(self,*args):
-        console.log(self.prefix+":",*args)
+        console.log(str(time())+":"+self.prefix+":",*args)
 
 
 
