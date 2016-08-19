@@ -1,22 +1,43 @@
 from .expression import parse, ET_EXPRESSION, ET_INTERPOLATED_STRING, parse_interpolated_str
 from lib.events import EventMixin
+from .context import Context
 
 class ExpObserver(EventMixin):
 
-    def __init__(self,expression,context,expression_type=ET_EXPRESSION):
+    def __init__(self,expression,expression_type=ET_EXPRESSION,clone=False):
         super().__init__()
-        self._exp_src = expression
-        self._exp_type = expression_type
-        if expression_type == ET_EXPRESSION:
-            self.asts = [parse(expression)]
+        if clone:
+            self._clone(expression)
         else:
-            self.asts = parse_interpolated_str(expression)
-        self.ctx = context
+            self._exp_src = expression
+            self._exp_type = expression_type
+            if expression_type == ET_EXPRESSION:
+                self.asts = [parse(expression)]
+            else:
+                self.asts = parse_interpolated_str(expression)
         for ast in self.asts:
             ast.bind('exp_change',self._change_chandler)
+        self.ctx = Context()
+        self.evaluate()
+        self._last_event_id = -1
+
+
+    def watch(self,context):
+        self.ctx = context
+        for ast in self.asts:
             ast.watch(self.ctx)
         self.evaluate()
         self._last_event_id = -1
+
+    def _clone(self,observer):
+        self._exp_src = observer._exp_src
+        self._exp_type = observer.expression_type
+        self.asts = []
+        for a in observer.asts:
+            self.asts.append(a.clone())
+
+    def clone(self):
+        return ExpObserver(self,clone=True)
 
     @property
     def context(self):
@@ -58,6 +79,7 @@ class ExpObserver(EventMixin):
     def have_value(self):
         return self._have_val
 
+    @property
     def value(self):
         return self._val
 
