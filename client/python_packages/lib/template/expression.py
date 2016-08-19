@@ -326,6 +326,13 @@ class ExpNode(EventMixin):
     def _change_handler(self,event):
         pass
 
+    def clone(self):
+        """
+            Returns a clone of this node which can then watch another context.
+        """
+        return ExpNode()
+        pass
+
 
 class ConstNode(ExpNode):
     """ Node representing a string or number constant """
@@ -338,6 +345,10 @@ class ConstNode(ExpNode):
 
     def evaluate(self,context,self_obj = None):
         return self._last_val
+
+    def clone(self):
+        # Const Nodes can't change, so clone's can be identical
+        return self
 
     def __repr__(self):
         return repr(self._last_val)
@@ -372,6 +383,11 @@ class IdentNode(ExpNode):
     def name(self):
         return self._ident
 
+    def clone(self):
+        if self._const:
+            return self
+        else:
+            return IdentNode(self._ident)
 
     def watch(self, context):
         self.stop_forwarding(only_event='change')
@@ -414,6 +430,20 @@ class MultiChildNode(ExpNode):
             if ch is not None:
                 ch.bind('exp_change',self,'exp_change')
 
+    def clone(self):
+        """
+            Since MultiChildNode is an abstract node which is never instantiated,
+            the clone method doesn't return the MultiChildNode but a list of cloned
+            children so that it can be used by subclasses.
+        """
+        clones=[]
+        for ch in self._children:
+            if ch is not None:
+                clones.append(ch.clone())
+            else:
+                clones.append(None)
+        return clones
+
     def evaluate(self, context):
         self._last_val = []
         for ch in self._children:
@@ -436,6 +466,14 @@ class FuncArgsNode(MultiChildNode):
         for (k,v) in self._kwargs.items():
             v.bind('exp_change',self,'exp_change')
 
+    def clone(self):
+        cloned_args = super().clone()
+        cloned_kwargs = {}
+        for (k,v) in self._kwargs.items():
+            cloned_kwargs[k] = v.clone()
+        return FuncArgsNode(cloned_args,cloned_kwargs)
+
+
     def evaluate(self,context):
         args = super().evaluate(context)
         kwargs = {}
@@ -457,6 +495,10 @@ class ListSliceNode(MultiChildNode):
     def __init__(self,slice,start,end,step):
         super().__init__([start,end,step])
         self._slice = slice
+
+    def clone(self):
+        start_c,end_c,step_c = super().clone()
+        return ListSliceNode(self._slice,start_c,end_c,step_c)
 
     def evaluate(self, context):
         start,end,step = super().evaluate(context)
@@ -489,6 +531,9 @@ class AttrAccessNode(ExpNode):
         self._obj_val = None
         self._attr = attribute
         self._obj.bind('exp_change',self,'exp_change')
+
+    def clone(self):
+        return AttrAccessNode(self._obj.clone(),self._attr.clone())
 
     def evaluate(self,context):
         """
@@ -527,6 +572,16 @@ class ListComprNode(ExpNode):
         if self._cond is not None:
             self._cond.bind('exp_change',self,'exp_change')
 
+    def clone(self):
+        expr_c = self._expr.clone()
+        var_c = self._var.clone()
+        lst_c = self._lst.clone()
+        if self._cond is None:
+            cond_c = None
+        else:
+            cond_c = self._cond.clone()
+        return ListComprNode(expr_c,var_c,lst_c,cond_c)
+
     def evaluate(self,context):
         lst = self._lst.evaluate(context)
         ret = []
@@ -558,6 +613,8 @@ class ListNode(MultiChildNode):
     def __init__(self,lst):
         super().__init__(lst)
 
+    def clone(self):
+        return ListNode(super().clone())
 
     def __repr__(self):
         return repr(self._children)
@@ -601,6 +658,14 @@ class OpNode(ExpNode):
             l_exp.bind('exp_change',self,'exp_change')
         r_exp.bind('exp_change',self,'exp_change')
         self.bind('exp_change',self._change_handler)
+
+    def clone(self):
+        if self._larg is None:
+            l_exp = None
+        else:
+            l_exp = self._larg.clone()
+        r_exp = self._rarg.clone()
+        return OpNode(self._opstr,l_exp,r_exp)
 
     def evaluate(self,context):
         if self._opstr in self.UNARY:
@@ -780,13 +845,25 @@ def parse_interpolated_str(tpl_expr):
     return ret
 
 
+_parse_cache = {}
 
-def parse(expr,trailing_garbage_ok=False):
+def parse(expr,trailing_garbage_ok=False,use_cache=True):
+    if (expr,trailing_garbage_ok) in _parse_cache and use_cache:
+        if trailing_garbage_ok:
+            ast,pos = _parse_cache[(expr,trailing_garbage_ok)]
+            return ast.clone(), pos
+        else:
+            ast = _parse_cache[(expr,trailing_garbage_ok)]
+            return ast.clone()
     token_stream = tokenize(expr)
     ast,etok,pos = _parse(token_stream,trailing_garbage_ok=trailing_garbage_ok)
     if trailing_garbage_ok:
+        if use_cache:
+            _parse_cache[(expr,True)]=ast,pos
         return ast,pos
     else:
+        if use_cache:
+            _parse_cache[(expr,False)]=ast
         return ast
 
 def _parse(token_stream,end_tokens=[],trailing_garbage_ok=False):
