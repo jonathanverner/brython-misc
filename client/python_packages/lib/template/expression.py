@@ -553,27 +553,14 @@ class ListComprNode(ExpNode):
             return '['+repr(self._expr)+' for '+repr(self._var)+' in ' + repr(self._lst) + ' if '+repr(self._cond)+']'
 
 
-class ListNode(ExpNode):
+class ListNode(MultiChildNode):
     """ Node representing a list constant, e.g. [1,2,"ahoj",3,None] """
     def __init__(self,lst):
-        super().__init__()
-        self._lst = lst
-        for e in self._lst:
-            e.bind('exp_change',self,'exp_change')
+        super().__init__(lst)
 
-    def evaluate(self,context):
-        ret = []
-        for e in self._lst:
-            ret.append(e.evaluate(context))
-        self._last_val = ret
-        return self._last_val
-
-    def watch(self,context):
-        for e in self._lst:
-            e.watch(context)
 
     def __repr__(self):
-        return repr(self._lst)
+        return repr(self._children)
 
 
 class OpNode(ExpNode):
