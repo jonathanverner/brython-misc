@@ -19,7 +19,9 @@ class TestExpObserver(object):
         self.ctx._clear()
 
     def prepare(self,exp, et = ET_EXPRESSION):
-        self.obs = ExpObserver(exp,self.ctx,expression_type=et)
+        self.obs = ExpObserver(exp,expression_type=et)
+        self.obs.watch(self.ctx)
+        self.obs.evaluate()
         self.t = TestObserver(self.obs)
 
     def exec_test(self,old,new):
@@ -32,7 +34,7 @@ class TestExpObserver(object):
 
         if new is not None:
             assert self.obs.have_value() == True
-            assert self.obs.value() == new
+            assert self.obs.value == new
             assert 'new' in data
             assert data['new'] == new
         else:
@@ -74,7 +76,7 @@ class TestExpObserver(object):
     def test_attr_acces(self):
         self.ctx.root = MockObject(depth=3)
         self.prepare("root.child.child.child.leaf and True")
-        assert self.obs.value() == True
+        assert self.obs.value == True
 
         self.ctx.root.child.child.child.leaf = False
         self.exec_test(True,False)
@@ -108,7 +110,7 @@ class TestExpObserver(object):
         self.ctx.a = 0
         self.prepare("lst[0][a]")
         self.obs.have_value() == True
-        assert self.obs.value() == 1
+        assert self.obs.value == 1
 
         self.ctx.lst[1]=2
         self.exec_test(1,1)
@@ -125,7 +127,7 @@ class TestExpObserver(object):
         self.ctx.name = "James"
         self.prepare("My name is {{ surname }}, {{name}} {{ surname}}.",et=ET_INTERPOLATED_STRING)
         self.obs.have_value() == True
-        assert self.obs.value() == "My name is , James ."
+        assert self.obs.value == "My name is , James ."
 
         self.ctx.surname = "Bond"
         self.exec_test("My name is , James .","My name is Bond, James Bond.")

@@ -1,7 +1,7 @@
 from unittest.mock import patch
 import client.tests.brython.browser
 from client.python_packages.lib.template.context import Context
-from client.python_packages.lib.template.tag import InterpolatedAttr, AttrDict
+from client.python_packages.lib.template.tag import AttrDict
 
 
 from client.python_packages.lib.events import EventMixin
@@ -10,7 +10,7 @@ from client.python_packages.lib.template.expression import ET_INTERPOLATED_STRIN
 class InterpolatedStr(EventMixin):
     def __init__(self,string):
         super().__init__()
-        self.observer = ExpObserver(string,Context(),expression_type=ET_INTERPOLATED_STRING)
+        self.observer = ExpObserver(string,expression_type=ET_INTERPOLATED_STRING)
         self.observer.bind('change',self._change_handler)
 
     def bind_ctx(self,ctx):
@@ -30,7 +30,7 @@ class InterpolatedStr(EventMixin):
 
     @property
     def value(self):
-        return self.observer.value()
+        return self.observer.value
 
     def _change_handler(self,event):
         old,new  = event.data.get('old',""), event.data.get('new',"")
@@ -69,17 +69,6 @@ class MockDomElt:
     def removeAttribute(self,attr):
         pass
 
-def test_interpolated_attr():
-    ctx = Context()
-    a = MockAttr("class","{{ ' '.join(classes) }}")
-    ia = InterpolatedAttr(a,ctx)
-    assert a.value == ""
-
-    ctx.classes=['ahoj','cau']
-    assert a.value == "ahoj cau"
-
-    del ctx.classes
-    assert a.value == ""
 
 def test_attr_dict():
     ctx = Context()
@@ -92,10 +81,10 @@ def test_attr_dict():
 
     ad = AttrDict(el,['excluded'])
     assert ida.value == 'test'
-    assert naa.value == ""
+    assert naa.value == "{{ name }}"
     assert exa.value == "{{ name }}"
     assert ad['id'] == 'test'
-    assert ad['name'] == ''
+    assert ad['name'] == '{{ name }}'
     assert ad['excluded'] == '{{ name }}'
 
     ad.bind_ctx(ctx)
