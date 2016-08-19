@@ -9,66 +9,38 @@ logger = Logger(__name__)
 
 import re
 
-class InterpolatedAttr(object):
-    def __init__(self,attr,context=None):
-        if context is None:
-            context=Context()
-        self._observer = ExpObserver(attr.value,context,expression_type=ET_INTERPOLATED_STRING)
-        self._observer.bind('change',self._change_handler)
-        self._attr=attr
-        self._attr.value=self._observer.value()
-
-    @property
-    def context(self):
-        return self._observer.context
-
-    @context.setter
-    def context(self,ct):
-        self._observer.context = ct
-
-    @property
-    def src(self):
-        return self._observer._exp_src
-
-    @property
-    def value(self):
-        return self._attr.value
-
-    @value.setter
-    def value(self,value):
-        self._observer.unbind()
-        self._observer = ExpObserver(value,self.context,expression_type=ET_INTERPOLATED_STRING)
-        self._observer.bind('change',self._change_handler)
-        self._attr.value = self._observer.value()
-
-    def _change_handler(self,event):
-        self._attr.value = event.data['new']
-
 class AttrDict(object):
+    """
+        A nicer interface to element attributes. Except for elements in exclude,
+        the attribute values will be interpolated (provided they contain '{{').
+        It has a dict-like interface which allows getting attr values and
+        setting non-interpolated attributes.
+        Any new attributes which are set will not be interpolated.
+    """
     def __init__(self,element,exclude=[]):
         self._attrs = {}
-        self._ctx = Context()
         self._elem = element
         self._exclude = exclude
         for a in self._elem.attributes:
-            if not a.name in exclude:
-                self._attrs[a.name] = InterpolatedAttr(a,self._ctx)
+            if not a.name in exclude and '{{' in a.value:
+                observer = ExpObserver(a.value,ET_INTERPOLATED_STRING)
+                observer.bind('change',self._change_chandler)
+                observer._attr=a
+                self._attrs[a.name] = observer
             else:
                 self._attrs[a.name] = a
+        self._bound = False
 
-    @property
-    def context(self):
-        return self._ctx
+    def bind_ctx(self,context):
+        self._bound = True
+        for attr in self._attrs.values():
+            if isinstance(attr,ExpObserver):
+                attr.watch(context)
+                attr.evaluate()
+                attr._attr.value = attr.value
 
-    @context.setter
-    def context(self,ct):
-        self._ctx = ct
-        for (a,interp_attr) in self._attrs.items():
-            if isinstance(interp_attr,InterpolatedAttr):
-                interp_attr.context = ct
-
-    def bind_ctx(self,ct):
-        self.context = ct
+    def _change_chandler(self,event):
+        event.data['observer']._attr.value = event.data['new']
 
     def __iter__(self):
         return iter(self._attrs)
@@ -76,21 +48,28 @@ class AttrDict(object):
     def keys(self):
         return self._attrs.keys()
 
-    def items(self):
-        return self._attrs.items()
-
     def __getitem__(self, key):
-        return self._attrs[key].value
+        if self._bound:
+            return self._attrs[key].value
+        else:
+            a = self._attrs[key]
+            if isinstance(a, ExpObserver):
+                return a._exp_src
+            else:
+                return a.value
 
     def __setitem__(self, key, value):
         if key in self._attrs:
-            self._attrs[key].value = value
+            try:
+                self._attrs[key].value = value
+            except:
+                pass
         else:
             if key not in self._exclude:
                 setattr(self._elem,key,value)
                 for attr in self._elem.attributes:
                     if attr.name == key:
-                        self._attrs[key] = InterpolatedAttr(attr,self._ctx)
+                        self._attrs[key] = attr
                         return
                 raise Exception("Attribute '"+key+"' cannot be set.")
             else:
@@ -125,11 +104,13 @@ class ErrorPlugin(Plugin):
 class TextPlugin(Plugin):
     def __init__(self,node,element):
         super().__init__(node,element)
-        self._observer = ExpObserver(element.text,Context(),expression_type=ET_INTERPOLATED_STRING)
+        self._observer = ExpObserver(element.text,expression_type=ET_INTERPOLATED_STRING)
         self._observer.bind('change',self._change_handler)
 
     def bind_ctx(self,ct):
-        self._observer.context = ct
+        self._observer.watch(ct)
+        self._observer.evaluate()
+        self._element.text = self._observer.value
 
     def _change_handler(self,event):
         self._element.text = event.data['new']
@@ -169,18 +150,24 @@ class TplNode(EventMixin):
         self._children = []
         self._parent = parent
         self._exclude_attrs = []
+        logger.debug("Cloning element...")
         self._orig_clone = self._element.clone()
 
         if self._element.nodeName == '#text':
+            logger.debug("Creating Text plugin...")
             self._tag_plugin = TextPlugin(self,self._element)
+            logger.debug("Done (text plugin).")
         else:
             canonical_tag_name = None
             tag_args = []
             for a in self._element.attributes:
+                logger.debug("Testing attribute",a.name,"...")
                 canonical_name = a.name[len(self.PLUGIN_PREFIX):].upper()
                 if canonical_name in self.ATTR_PLUGINS:
                     try:
+                        logger.debug("Creating plugin...")
                         self._plugins.append(self.ATTR_PLUGINS[canonical_name](self,self._element,a.value))
+                        logger.debug("Done Creating plugin...")
                     except Exception as ex:
                         logger.warn("Error loading attr plugin: '",canonical_name,"':",ex)
                         self._plugins.append(ErrorPlugin(self,self._element,ex))
@@ -188,6 +175,7 @@ class TplNode(EventMixin):
                 if canonical_name in self.TAG_PLUGINS:
                     canonical_tag_name = canonical_name
                     tag_args.append(a.value)
+            logger.debug("Computing canonical name...")
             if canonical_tag_name is None:
                 canonical_tag_name = self._element.nodeName[len(self.PLUGIN_PREFIX):]
             if canonical_tag_name in self.TAG_PLUGINS:
@@ -195,18 +183,24 @@ class TplNode(EventMixin):
                 kwargs = {}
                 for attr in meta['attrs']:
                     try:
+                        logger.debug("Getting params:",attr)
                         kwargs[attr] = getattr(self._element,attr)
                     except:
                         pass
                     self._exclude_attrs.append(attr)
                 try:
+                    logger.debug("Creating plugin:",meta['name'])
                     self._tag_plugin = meta['cls'](self,self._element,*tag_args,**kwargs)
+                    logger.debug("Done creating plugin:",meta['name'])
                 except Exception as ex:
                     logger.warn("Error loading tag plugin: '",canonical_tag_name,"':",ex)
                     self._tag_plugin = ErrorPlugin(self,self._element,ex)
+            logger.debug("Building attrdict")
             self._attrs = AttrDict(self._element,self._exclude_attrs)
+            logger.debug("Processing children")
             for ch in self._element.children:
                 self._children.append(TplNode(ch,self))
+            logger.debug("Done processing children")
 
 
     def bind_ctx(self,context):
@@ -219,7 +213,7 @@ class TplNode(EventMixin):
             if isinstance(ch,TplNode):
                 ch.bind_ctx(self._context)
         if self._attrs is not None:
-            self._attrs.context=self._context
+            self._attrs.bind_ctx(self._context)
 
     def _remove_plugin(self,plugin_class):
         plugs = []
