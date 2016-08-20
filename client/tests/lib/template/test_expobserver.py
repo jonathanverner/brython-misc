@@ -41,6 +41,17 @@ class TestExpObserver(object):
             assert 'new' not in data
             assert self.obs.have_value() == False
 
+    def test_clone(self):
+        self.prepare("x**2 + x")
+        clone = self.obs.clone()
+        ctx = Context()
+        clone.watch(ctx)
+        clone.evaluate()
+        ctx.x=0
+        self.ctx.x=1
+        assert clone.value == 0
+        assert self.obs.value == 2
+
     def test_arithmetic_exp(self):
         self.ctx.a = 1
         self.ctx.b = -2
