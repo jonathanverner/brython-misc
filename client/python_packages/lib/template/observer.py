@@ -26,8 +26,6 @@ class ObjMixin(object):
                 'key':name,
                 'value':value,
             }
-            if hasattr(self,name):
-                change_event['old'] = getattr(self,name)
             self._orig_class.__setattr__(self,name,value)
             #super().__setattr__(name,value)
             self._obs____.emit('change',change_event)

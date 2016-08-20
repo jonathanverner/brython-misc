@@ -390,8 +390,8 @@ class IdentNode(ExpNode):
             return IdentNode(self._ident)
 
     def watch(self, context):
-        self.stop_forwarding(only_event='change')
         if not self._const:
+            self.stop_forwarding(only_event='change')
             self._watched_ctx = context
             observe(context,observer=self)
             try:
@@ -402,18 +402,18 @@ class IdentNode(ExpNode):
     def evaluate(self,context):
         if not self._const:
             try:
-                self._last_val = context._get(self.name())
+                self._last_val = context._get(self._ident)
             except KeyError:
-                self._last_val = self.BUILTINS[self.name()]
+                self._last_val = self.BUILTINS[self._ident]
         return self._last_val
 
     def _change_handler(self,event):
         if event.data['observed_obj'] == self._watched_ctx:
-            if event.data['key'] == self.name():
+            if event.data['key'] == self._ident:
                 if hasattr(self,'_last_val'):
                     self.stop_forwarding(only_obj=self._last_val)
-                if hasattr(self._watched_ctx,self.name()):
-                    observe(self._watched_ctx._get(self.name()),observer=self,ignore_errors=True)
+                if hasattr(self._watched_ctx,self._ident):
+                    observe(self._watched_ctx._get(self._ident),observer=self,ignore_errors=True)
                 self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
         else:
             self.emit('exp_change',{'source_id':event.eventid,'change':event.data})

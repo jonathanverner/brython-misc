@@ -31,7 +31,7 @@ class ExpObserver(EventMixin):
 
     def _clone(self,observer):
         self._exp_src = observer._exp_src
-        self._exp_type = observer.expression_type
+        self._exp_type = observer._exp_type
         self.asts = []
         for a in observer.asts:
             self.asts.append(a.clone())

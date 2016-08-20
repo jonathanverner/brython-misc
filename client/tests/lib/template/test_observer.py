@@ -23,7 +23,6 @@ def test_obj_observer():
         'type':'__setattr__',
         'key':'v',
         'value':20,
-        'old':10
     }
 
 def test_dict_observer():
