@@ -17,19 +17,39 @@ class AttrDict(object):
         setting non-interpolated attributes.
         Any new attributes which are set will not be interpolated.
     """
-    def __init__(self,element,exclude=[]):
+    def __init__(self,element,exclude=[],clone=False,clone_from=None):
+        if clone:
+            self._clone(element,clone_from)
+        else:
+            self._attrs = {}
+            self._elem = element
+            self._exclude = exclude
+            for a in self._elem.attributes:
+                if not a.name in exclude and '{{' in a.value:
+                    observer = ExpObserver(a.value,ET_INTERPOLATED_STRING)
+                    observer.bind('change',self._change_chandler)
+                    observer._attr=a
+                    self._attrs[a.name] = observer
+                else:
+                    self._attrs[a.name] = a
+            self._bound = False
+
+    def _clone(self,element,clone_from):
         self._attrs = {}
         self._elem = element
-        self._exclude = exclude
-        for a in self._elem.attributes:
-            if not a.name in exclude and '{{' in a.value:
-                observer = ExpObserver(a.value,ET_INTERPOLATED_STRING)
+        self._exclude=clone_from._exclude
+        for (attr_name,attr) in clone_from._attrs.items():
+            if isinstance(attr,ExpObserver):
+                observer = attr.clone()
                 observer.bind('change',self._change_chandler)
-                observer._attr=a
-                self._attrs[a.name] = observer
+                observer._attr = getattr(element.attributes,attr_name)
+                self._attrs[attr_name] = observer
             else:
-                self._attrs[a.name] = a
-        self._bound = False
+                self._attrs[attr_name] = getattr(element.attributes,attr_name)
+
+    def clone(self,new_element):
+        return AttrDict(new_element,clone=True,clone_from=self)
+
 
     def bind_ctx(self,context):
         self._bound = True
@@ -67,11 +87,10 @@ class AttrDict(object):
         else:
             if key not in self._exclude:
                 setattr(self._elem,key,value)
-                for attr in self._elem.attributes:
-                    if attr.name == key:
-                        self._attrs[key] = attr
-                        return
-                raise Exception("Attribute '"+key+"' cannot be set.")
+                try:
+                    self._attrs[key] = getattr(self._elem.attributes,key)
+                except:
+                    raise Exception("Attribute '"+key+"' cannot be set.")
             else:
                 raise Exception("Attribute '"+key+"' cannot be set.")
 
@@ -84,6 +103,9 @@ class Plugin(EventMixin):
         self._owner = node
         self._element = element
 
+    def clone(self,node,element):
+        return Plugin(node,element)
+
     def bind_ctx(self,context):
         pass
 
@@ -91,9 +113,17 @@ class TagPlugin(Plugin):
     def __init__(self, node, element):
         super().__init__(node,element)
 
+    def clone(self,node,element):
+        return TagPlugin(node,element)
+
 class AttrPlugin(Plugin):
     def __init__(self,node,element,value):
         super().__init__(node,element)
+        self._value=value
+
+    def clone(self,node,element):
+        return AttrPlugin(node,element,self._value)
+
 
 class ErrorPlugin(Plugin):
     def __init__(self,node,element,ex):
@@ -101,11 +131,25 @@ class ErrorPlugin(Plugin):
         self._ex = ex
         self._element <= html.SPAN(str(ex))
 
+    def clone(self,node,element):
+        return ErrorPlugin(node,element,self._ex)
+
+
 class TextPlugin(Plugin):
-    def __init__(self,node,element):
+    def __init__(self,node,element,_clone=False,_clone_from=None):
         super().__init__(node,element)
-        self._observer = ExpObserver(element.text,expression_type=ET_INTERPOLATED_STRING)
+        if _clone:
+            self._clone(_clone_from)
+        else:
+            self._observer = ExpObserver(element.text,expression_type=ET_INTERPOLATED_STRING)
+            self._observer.bind('change',self._change_handler)
+
+    def _clone(self,clone_from):
+        self._observer = clone_from._observer.clone()
         self._observer.bind('change',self._change_handler)
+
+    def clone(self,node,element):
+        return TextPlugin(node,element,_clone=True,_clone_from=self)
 
     def bind_ctx(self,ct):
         self._observer.watch(ct)
@@ -139,9 +183,17 @@ class TplNode(EventMixin):
                 'name': plugin_name
             }
             meta['attrs'].remove('self')
+            try:
+                meta['attrs'].remove('_clone')
+            except:
+                pass
+            try:
+                meta['attrs'].remove('_clone_from')
+            except:
+                pass
             cls.TAG_PLUGINS[plugin_name]=meta
 
-    def __init__(self,dom_element,parent=None):
+    def __init__(self,dom_element,parent=None,_clone=False,_clone_from=None):
         self._element = dom_element
         self._context = None
         self._plugins = []
@@ -150,58 +202,75 @@ class TplNode(EventMixin):
         self._children = []
         self._parent = parent
         self._exclude_attrs = []
-        logger.debug("Cloning element...")
-        self._orig_clone = self._element.clone()
-
-        if self._element.nodeName == '#text':
-            logger.debug("Creating Text plugin...")
-            self._tag_plugin = TextPlugin(self,self._element)
-            logger.debug("Done (text plugin).")
+        if _clone:
+            self._clone(dom_element,_clone_from)
         else:
-            canonical_tag_name = None
-            tag_args = []
-            for a in self._element.attributes:
-                logger.debug("Testing attribute",a.name,"...")
-                canonical_name = a.name[len(self.PLUGIN_PREFIX):].upper()
-                if canonical_name in self.ATTR_PLUGINS:
+            logger.debug("Cloning element...")
+            self._orig_clone = self._element.clone()
+            if self._element.nodeName == '#text':
+                logger.debug("Creating Text plugin...")
+                self._tag_plugin = TextPlugin(self,self._element)
+                logger.debug("Done (text plugin).")
+            else:
+                canonical_tag_name = None
+                tag_args = []
+                for a in self._element.attributes:
+                    logger.debug("Testing attribute",a.name,"...")
+                    canonical_name = a.name[len(self.PLUGIN_PREFIX):].upper()
+                    if canonical_name in self.ATTR_PLUGINS:
+                        try:
+                            logger.debug("Creating plugin...")
+                            self._plugins.append(self.ATTR_PLUGINS[canonical_name](self,self._element,a.value))
+                            logger.debug("Done Creating plugin...")
+                        except Exception as ex:
+                            logger.warn("Error loading attr plugin: '",canonical_name,"':",ex)
+                            self._plugins.append(ErrorPlugin(self,self._element,ex))
+                        self._exclude_attrs.append(a.name)
+                    if canonical_name in self.TAG_PLUGINS:
+                        canonical_tag_name = canonical_name
+                        tag_args.append(a.value)
+                logger.debug("Computing canonical name...")
+                if canonical_tag_name is None:
+                    canonical_tag_name = self._element.nodeName[len(self.PLUGIN_PREFIX):]
+                if canonical_tag_name in self.TAG_PLUGINS:
+                    meta=self._tag_plugin = self.TAG_PLUGINS[canonical_tag_name]
+                    kwargs = {}
+                    for attr in meta['attrs']:
+                        try:
+                            logger.debug("Getting params:",attr)
+                            kwargs[attr] = getattr(self._element,attr)
+                        except:
+                            pass
+                        self._exclude_attrs.append(attr)
                     try:
-                        logger.debug("Creating plugin...")
-                        self._plugins.append(self.ATTR_PLUGINS[canonical_name](self,self._element,a.value))
-                        logger.debug("Done Creating plugin...")
+                        logger.debug("Creating plugin:",meta['name'])
+                        self._tag_plugin = meta['cls'](self,self._element,*tag_args,**kwargs)
+                        logger.debug("Done creating plugin:",meta['name'])
                     except Exception as ex:
-                        logger.warn("Error loading attr plugin: '",canonical_name,"':",ex)
-                        self._plugins.append(ErrorPlugin(self,self._element,ex))
-                    self._exclude_attrs.append(a.name)
-                if canonical_name in self.TAG_PLUGINS:
-                    canonical_tag_name = canonical_name
-                    tag_args.append(a.value)
-            logger.debug("Computing canonical name...")
-            if canonical_tag_name is None:
-                canonical_tag_name = self._element.nodeName[len(self.PLUGIN_PREFIX):]
-            if canonical_tag_name in self.TAG_PLUGINS:
-                meta=self._tag_plugin = self.TAG_PLUGINS[canonical_tag_name]
-                kwargs = {}
-                for attr in meta['attrs']:
-                    try:
-                        logger.debug("Getting params:",attr)
-                        kwargs[attr] = getattr(self._element,attr)
-                    except:
-                        pass
-                    self._exclude_attrs.append(attr)
-                try:
-                    logger.debug("Creating plugin:",meta['name'])
-                    self._tag_plugin = meta['cls'](self,self._element,*tag_args,**kwargs)
-                    logger.debug("Done creating plugin:",meta['name'])
-                except Exception as ex:
-                    logger.warn("Error loading tag plugin: '",canonical_tag_name,"':",ex)
-                    self._tag_plugin = ErrorPlugin(self,self._element,ex)
-            logger.debug("Building attrdict")
-            self._attrs = AttrDict(self._element,self._exclude_attrs)
-            logger.debug("Processing children")
-            for ch in self._element.children:
-                self._children.append(TplNode(ch,self))
-            logger.debug("Done processing children")
+                        logger.warn("Error loading tag plugin: '",canonical_tag_name,"':",ex)
+                        self._tag_plugin = ErrorPlugin(self,self._element,ex)
+                logger.debug("Building attrdict")
+                self._attrs = AttrDict(self._element,self._exclude_attrs)
+                logger.debug("Processing children")
+                for ch in self._element.children:
+                    self._children.append(TplNode(ch,self))
+                logger.debug("Done processing children")
 
+
+    def _clone(self,dom_element,clone_from):
+        self._orig_clone = clone_from._orig_clone
+        if clone_from._tag_plugin is not None:
+            self._tag_plugin = clone_from._tag_plugin.clone(self,dom_element)
+        else:
+            self._tag_plugin = None
+        if not isinstance(clone_from._tag_plugin,TextPlugin):
+            for p in clone_from._plugins:
+                self._plugins.append(p.clone(self,dom_element))
+            self._attrs = clone_from._attrs.clone(dom_element)
+        pos=0
+        for ch in self._element.children:
+            self._children.append(clone_from._children[pos].clone(ch))
+            pos += 1
 
     def bind_ctx(self,context):
         self._context = context
@@ -222,9 +291,10 @@ class TplNode(EventMixin):
                 plugs.append(p)
         self._plugins = plugs
 
-    def clone(self):
-        cloned_element = self._orig_clone.clone()
-        return TplNode(cloned_element)
+    def clone(self,cloned_element=None):
+        if cloned_element is None:
+            cloned_element = self._orig_clone.clone()
+        return TplNode(cloned_element,_clone=True,_clone_from=self)
 
     def append(self,node):
         if node._parent is not None:
@@ -272,7 +342,10 @@ class TplNode(EventMixin):
 class Style(AttrPlugin):
     def __init__(self,node,element,style):
         super().__init__(node,element)
+        self._style=style
         pass
+    def clone(self,node,element):
+        return Style(node,element,self._style)
 TplNode.register_plugin(Style)
 
 
@@ -280,56 +353,88 @@ class For(TagPlugin):
     SPEC_RE = re.compile('^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
     COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
 
-    def __init__(self,node,element,loop_spec):
+    def __init__(self,node,element,loop_spec,_clone=False,_clone_from=None):
         super().__init__(node,element)
-
-        m=For.SPEC_RE.match(loop_spec)
-        if m is None:
-            raise Exception("Invalid loop specification: "+loop_spec)
+        if _clone:
+            self._clone(node,element,_clone_from)
         else:
-            m = m.groupdict()
-        self._var = m['loop_var']
-        sequence_exp = m['sequence_exp']
-        self._exp,pos = parse(sequence_exp,trailing_garbage_ok=True)
+            logger.debug("Matching loop...")
+            m=For.SPEC_RE.match(loop_spec)
+            if m is None:
+                raise Exception("Invalid loop specification: "+loop_spec)
+            else:
+                m = m.groupdict()
+            self._var = m['loop_var']
+            sequence_exp = m['sequence_exp']
+            logger.debug("Parsing loop...")
+            self._exp,pos = parse(sequence_exp,trailing_garbage_ok=True)
+            logger.debug("Matching condition ...")
+            m = For.COND_RE.match(sequence_exp[pos:])
+            if m:
+                logger.debug("Parsing condition ...")
+                self._cond = parse(m['condition'])
+            else:
+                self._cond = None
+
+            logger.debug("Cloning element...")
+            elt_copy = self._element.clone()
+            logger.debug("Deleting for attr...")
+            setattr(elt_copy,TplNode.PLUGIN_PREFIX+'for',False) # Deletes the for attribute
+            logger.debug("Creating template...")
+            self._template_node = TplNode(elt_copy)
+            logger.debug("Done.")
+        self._parent_node = self._owner._parent
         self._exp.bind('exp_change',self._change_chandler)
-        m = For.COND_RE.match(sequence_exp[pos:])
-        if m:
-            self._cond = parse(m['condition'])
+
+    def _clone(self,node,element,clone_from):
+        self._var = clone_from._var
+        self._exp = clone_from._exp.clone()
+        self._template_node = clone_from._template_node
+        if clone_from._cond is not None:
+            self._cond = clone_from._cond.clone()
         else:
             self._cond = None
 
-        elt_copy = self._element.clone()
-        setattr(elt_copy,TplNode.PLUGIN_PREFIX+'for',False) # Deletes the for attribute
-        self._template_node = TplNode(elt_copy)
-        self._parent_node = self._owner._parent
-
     def bind_ctx(self,ctx):
+        logger.debug("Creating fence...")
         self._before,self._after=self._owner._parent.create_fence(self._owner)
         self._ctx = ctx
+        logger.debug("Watching context...")
         self._exp.watch(self._ctx)
+        logger.debug("Updating...")
         self._update()
+        logger.debug("Done updating...")
 
     def _update(self):
         try:
+            logger.debug("Evaluating lst...")
             self._lst = self._exp.evaluate(self._ctx)
         except Exception as ex:
             logger.warn("Exception",ex,"when computing list",self._exp,"with context",self._ctx)
             self._lst = []
         self._clones=[]
+        logger.debug("Deleting previous list from parent...")
         self._parent_node.cut(self._before,self._after)
         try:
             for item in self._lst:
                 c=Context({self._var:item})
                 try:
+                    logger.debug("Testing condition...")
                     if self._cond is None or self._cond.evaluate(c):
+                        logger.debug("Cloning template...")
                         clone = self._template_node.clone()
+                        logger.debug("Binding clone...")
                         clone.bind_ctx(c)
+                        logger.debug("Saving clone...")
                         self._clones.append(clone)
                 except Exception as ex:
+                    logger.exception(ex)
                     logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
         except Exception() as ex:
             logger.warn("Exception",ex,"when iterating over list",self._lst)
+        logger.debug("Appending clones to parent...")
         self._parent_node.insert(self._before,self._after,self._clones)
+        logger.debug("Done.")
 
     def _change_chandler(self,ev):
         self._update()
@@ -339,13 +444,19 @@ TplNode.register_plugin(For)
 class Include(TagPlugin):
     def __init__(self, node, element, name):
         super().__init__(node,element)
-        pass
+        self._name = name
+
+    def clone(self, node, element):
+        return Include(node,self._element,self._name)
 TplNode.register_plugin(Include)
 
 class Template(TagPlugin):
     def __init__(self, node, element, name):
         super().__init__(node,element)
-        pass
+        self._name = name
+
+    def clone(self, node, element):
+        return Template(node,element,self._name)
 TplNode.register_plugin(Template)
 
 
